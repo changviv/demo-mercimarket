@@ -165,7 +165,7 @@ async function run() {
       await p.locator('.mode', { hasText: new RegExp(`^${label}$`) }).click();
       await p.waitForTimeout(200);
       const h = norm(await p.locator('#pick-head').innerText());
-      const c = norm(await p.locator('.loc__go').first().innerText());
+      const c = norm(await p.locator('.loc__cta').first().innerText());
       const min = await p.locator('.loc__min').count();
       const okTitle = h === norm(title);
       const okCta = c === norm(cta);

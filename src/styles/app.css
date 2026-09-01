@@ -18,8 +18,8 @@
 .mast__inner {
   display: flex;
   align-items: center;
-  gap: var(--s-4);
-  min-height: var(--header-h);
+  gap: var(--s-3);
+  height: var(--header-h);
 }
 
 .mast__brand {
@@ -31,28 +31,22 @@
   flex-shrink: 0;
 }
 
+/* 42px, matching the artifact. The wordmark carries the brand on its own — no
+   "Catering" label beside it, which read as a different company. */
 .mast__brand img {
-  height: 30px;
+  height: 42px;
   width: auto;
-}
-
-.mast__sub {
-  font-family: var(--display);
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  color: var(--tomato-ink);
-  padding-left: var(--s-3);
-  border-left: 1px solid var(--line-strong);
 }
 
 .mast__nav {
   display: none;
-  margin-left: auto;
+  margin-left: var(--s-3);
+  flex: 1;
 }
 
 .mast__list {
   display: flex;
-  gap: var(--s-5);
+  gap: 28px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -66,17 +60,19 @@
   font-size: var(--fs-sm);
   font-weight: 600;
   text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
 
-.mast__link:hover,
-.mast__link[aria-current='page'] {
+.mast__link:hover {
   color: var(--tomato-ink);
+  border-bottom-color: var(--tomato-ink);
 }
 
 .mast__end {
   display: flex;
   align-items: center;
-  gap: var(--s-3);
+  gap: 10px;
   margin-left: auto;
 }
 
@@ -181,131 +177,313 @@
    ========================================================================== */
 
 .hero {
-  padding-top: var(--s-10);
-  padding-bottom: var(--s-10);
+  background: var(--cream);
+  border-bottom: 1px solid var(--line);
 }
 
 .hero__grid {
   display: grid;
-  gap: var(--s-8);
+  gap: 44px;
   align-items: center;
+  padding-top: 52px;
+  padding-bottom: 60px;
 }
 
-.hero__cta {
-  margin-bottom: var(--s-4);
+/* The eyebrow is a pill, not a line of caps: honey tint, honey rule, ink text. */
+.hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 20px;
+  padding: 7px 15px;
+  border-radius: var(--r-pill);
+  background: var(--honey-tint);
+  border: 1px solid var(--honey);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.hero__min {
+.hero h1 {
+  font-size: clamp(2.6rem, 6.4vw, 4.3rem);
+  line-height: 1.02;
+  letter-spacing: -0.018em;
+  margin: 0 0 22px;
+  font-variation-settings: 'opsz' 120, 'SOFT' 45, 'WONK' 1;
+  text-wrap: balance;
+}
+
+/* "Six Locations" carries the tomato. Semantically an <em>, not a span, because
+   it is genuine emphasis in the sentence. */
+.hero h1 em {
+  font-style: normal;
+  color: var(--tomato-ink);
+}
+
+.hero__sub {
   margin: 0;
+  font-size: 1.09rem;
+  line-height: 1.62;
+  color: var(--ink-2);
+  max-width: 47ch;
 }
 
-.hero__figure {
-  margin: 0;
+.hero__art {
+  position: relative;
+}
+
+.hero__frame {
+  position: relative;
   border-radius: var(--r-lg);
   overflow: hidden;
-  box-shadow: var(--lift);
   border: 1px solid var(--line);
+  box-shadow: var(--lift);
 }
 
-.hero__figure img {
+.hero__frame img {
   width: 100%;
-  height: 100%;
+  aspect-ratio: 5 / 4;
   object-fit: cover;
-  aspect-ratio: 4 / 3;
+}
+
+/* Overlaps the photo's bottom-left corner, as in the artifact. */
+.floater {
+  position: absolute;
+  left: -10px;
+  bottom: -20px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  max-width: calc(100% - 20px);
+  margin: 0;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--lift);
+}
+
+.floater__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-pill);
+  background: var(--basil);
+  box-shadow: 0 0 0 4px var(--basil-tint);
+  flex: none;
+}
+
+.floater b {
+  display: block;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: 1.25;
+}
+
+.floater i {
+  display: block;
+  font-style: normal;
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  line-height: 1.3;
 }
 
 /* ==========================================================================
-   Location picker
+   Location picker — sits on the page ground, not in a white band
    ========================================================================== */
 
 .picker {
-  background: var(--surface);
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  padding-top: var(--s-12);
-  padding-bottom: var(--s-12);
+  padding-top: 60px;
+  padding-bottom: 72px;
 }
 
 .picker__head {
-  margin-bottom: var(--s-6);
+  margin-bottom: 26px;
 }
 
-.picker__note {
-  color: var(--ink-2);
+.picker__head h2 {
+  font-size: clamp(1.65rem, 3.6vw, 2.25rem);
+  letter-spacing: -0.014em;
+  line-height: 1.1;
+  margin: 0 0 var(--s-2);
+  font-variation-settings: 'opsz' 60, 'SOFT' 40, 'WONK' 0;
+}
+
+.picker__head p {
   margin: 0;
+  color: var(--ink-2);
 }
 
 .picker__grid {
+  display: grid;
+  gap: var(--s-4);
+  grid-template-columns: 1fr;
   list-style: none;
   margin: 0;
   padding: 0;
-  grid-template-columns: 1fr;
 }
 
+/* The card has no padding of its own: a body block and a footer strip do it, so
+   the strip can carry its own ground colour edge to edge. */
 .loc {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--s-4);
-  justify-content: space-between;
   width: 100%;
-  min-height: 148px;
-  padding: var(--s-5);
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
   text-align: left;
-  background: var(--cream);
-  border: 1px solid var(--line);
+  background: var(--surface);
+  border: 1.5px solid var(--line);
   border-radius: var(--r);
+  box-shadow: var(--lift);
   cursor: pointer;
   font-family: var(--text);
-  transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease),
+  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease),
     box-shadow var(--dur) var(--ease);
 }
 
 .loc:hover {
+  transform: translateY(-4px);
   border-color: var(--tomato);
-  transform: translateY(-2px);
-  box-shadow: var(--lift);
+  box-shadow: var(--lift-hi);
 }
 
-.loc--active {
-  border-color: var(--tomato);
-  box-shadow: var(--ring);
-}
-
-.loc__body {
+.loc__top {
   display: block;
+  padding: 22px 22px 18px;
+}
+
+/* The shared .pill is tuned for inline use; inside a location card it takes the
+   artifact's slightly larger padding and the 14px gap under it. */
+.loc .pill {
+  padding: 5px 12px;
+  margin-bottom: 14px;
+  border: 0;
+  font-size: var(--fs-2xs);
 }
 
 .loc__name {
   display: block;
+  margin: 0 0 7px;
   font-family: var(--display);
-  font-size: var(--fs-h3);
-  font-weight: 600;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.14;
+  letter-spacing: -0.012em;
   color: var(--ink);
-  margin-bottom: var(--s-1);
+  font-variation-settings: 'opsz' 40, 'SOFT' 40, 'WONK' 0;
 }
 
 .loc__addr {
   display: block;
+  margin: 0 0 11px;
   font-size: var(--fs-sm);
   color: var(--ink-2);
+  line-height: 1.45;
 }
 
-.loc__addr--dim {
+.loc__hours {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: 0.875rem;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.loc__hours svg {
+  flex: none;
   color: var(--ink-3);
 }
 
 .loc__foot {
+  margin-top: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--s-3);
-  flex-wrap: wrap;
+  padding: 15px 22px;
+  border-top: 1px solid var(--line);
+  background: var(--sunken);
 }
 
-.loc__go {
+.loc__cta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--tomato-ink);
+}
+
+.loc__cta svg {
+  transition: transform var(--dur) var(--ease);
+}
+
+.loc:hover .loc__cta svg {
+  transform: translateX(4px);
+}
+
+.loc__min {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+/* The status pill carries a dot the size of the text's own weight. */
+.pill__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: currentColor;
+  flex: none;
+}
+
+/* ==========================================================================
+   Facts — a white band divided by hairlines, made with a 1px grid gap
+   ========================================================================== */
+
+.facts {
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.facts__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fact {
+  padding: 28px 24px;
+  background: var(--surface);
+}
+
+.fact b {
+  display: block;
+  margin-bottom: 9px;
+  font-family: var(--display);
+  font-size: 2.1rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--tomato-ink);
+  font-variant-numeric: tabular-nums;
+  font-variation-settings: 'opsz' 60, 'SOFT' 40, 'WONK' 0;
+}
+
+.fact span {
+  display: block;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  line-height: 1.4;
 }
 
 /* ==========================================================================
@@ -1541,9 +1719,15 @@
   }
 }
 
+@media (min-width: 880px) {
+  .facts__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 @media (min-width: 900px) {
   :root {
-    --gutter: var(--s-8);
+    --gutter: 40px;
   }
 
   /* Desktop: real navigation in the header, no drawer, no action bar. */
@@ -1565,11 +1749,6 @@
 
   .foot {
     padding-bottom: 0;
-  }
-
-  .hero__grid {
-    grid-template-columns: 1.05fr 0.95fr;
-    gap: var(--s-12);
   }
 
   .picker__grid,
@@ -1658,6 +1837,15 @@
   }
 }
 
+@media (min-width: 960px) {
+  .hero__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.02fr);
+    gap: 64px;
+    padding-top: 76px;
+    padding-bottom: 84px;
+  }
+}
+
 @media (min-width: 1120px) {
   .layout {
     grid-template-columns: 200px minmax(0, 1fr) 320px;
@@ -1686,43 +1874,36 @@
   display: none;
 }
 
-/* ---- Mode switch (home) -------------------------------------------------- */
+/* ---- Mode switch, inside the hero's left column ------------------------- */
 
 .modes {
-  display: grid;
-  gap: var(--s-4);
-  margin-bottom: var(--s-8);
+  margin-top: 34px;
 }
 
 .modes__label {
-  margin: 0;
-  font-size: var(--fs-xs);
-  font-weight: 800;
-  letter-spacing: var(--tracking-caps);
+  margin: 0 0 12px;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
 
-.modes__set {
+.modebar {
   display: inline-flex;
-  gap: var(--s-1);
-  padding: var(--s-1);
-  background: var(--sunken);
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
-  width: fit-content;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 5px;
   max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.modes__set::-webkit-scrollbar {
-  display: none;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  box-shadow: var(--lift);
 }
 
 .mode {
   min-height: var(--tap);
-  padding: 0 var(--s-5);
+  padding: 11px 22px;
   border: 0;
   border-radius: var(--r-pill);
   background: transparent;
@@ -1731,98 +1912,18 @@
   font-size: var(--fs-sm);
   font-weight: 700;
   cursor: pointer;
-  white-space: nowrap;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
-.mode--on {
+.mode:hover {
+  color: var(--tomato-ink);
+}
+
+.mode[aria-pressed='true'] {
   background: var(--tomato);
   color: var(--on-tomato);
 }
 
-.modes__note {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  margin: 0;
-  font-size: var(--fs-sm);
-}
-
-.modes__note strong {
-  display: block;
-}
-
-.modes__note span span {
-  display: block;
-  color: var(--ink-3);
-  font-size: var(--fs-xs);
-}
-
-.modes__dot {
-  width: 9px;
-  height: 9px;
-  border-radius: var(--r-pill);
-  background: var(--basil);
-  box-shadow: 0 0 0 4px var(--basil-tint);
-  flex: none;
-}
-
-/* ---- Location card additions --------------------------------------------- */
-
-.loc {
-  gap: var(--s-3);
-  align-items: flex-start;
-}
-
-.loc__today {
-  display: flex;
-  gap: var(--s-2);
-  font-size: var(--fs-sm);
-}
-
-.loc__today-k {
-  color: var(--ink-3);
-}
-
-.loc__today-v {
-  font-weight: 700;
-}
-
-.loc__min {
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-}
-
-/* ---- Facts strip ---------------------------------------------------------- */
-
-.facts {
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
-}
-
-.facts__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--s-6);
-  list-style: none;
-  margin: 0;
-  padding-top: var(--s-8);
-  padding-bottom: var(--s-8);
-}
-
-.fact__n {
-  display: block;
-  font-family: var(--display);
-  font-size: var(--fs-h2);
-  font-weight: 700;
-  color: var(--tomato-ink);
-  line-height: 1.1;
-}
-
-.fact__t {
-  display: block;
-  font-size: var(--fs-sm);
-  color: var(--ink-2);
-}
 
 /* ---- Catering opener ------------------------------------------------------ */
 
@@ -1999,17 +2100,8 @@
   vertical-align: middle;
 }
 
-.picker__alt {
-  margin: var(--s-6) 0 0;
-}
 
-.crosslink {
-  text-align: center;
-}
 
-.crosslink p {
-  margin-inline: auto;
-}
 
 /* ---- Store bar (menu) ------------------------------------------------------ */
 
@@ -2764,10 +2856,6 @@
    ========================================================================== */
 
 @media (min-width: 600px) {
-  .facts__grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
   .occs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

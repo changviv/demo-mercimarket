@@ -46,6 +46,7 @@
   --lift: 0 1px 2px rgba(60, 44, 24, 0.06), 0 12px 32px -18px rgba(60, 44, 24, 0.34);
   --lift-sm: 0 1px 2px rgba(60, 44, 24, 0.08);
   --lift-lg: 0 2px 4px rgba(60, 44, 24, 0.06), 0 24px 56px -24px rgba(60, 44, 24, 0.4);
+  --lift-hi: 0 2px 6px rgba(60, 44, 24, 0.08), 0 18px 44px -20px rgba(60, 44, 24, 0.42);
   --ring: 0 0 0 3px rgba(204, 61, 31, 0.32); /* focus ring, tomato at 32% */
   --scrim: rgba(46, 38, 32, 0.45);           /* behind the mobile drawer */
 
@@ -60,6 +61,7 @@
   --fs-body: 1rem;          /* 16px — never smaller for running copy */
   --fs-sm: 0.9375rem;       /* 15px */
   --fs-xs: 0.8125rem;       /* 13px — labels and meta only, never paragraphs */
+  --fs-2xs: 0.75rem;        /* 12px — pills and eyebrows only */
 
   --lh-tight: 1.08;
   --lh-snug: 1.28;
@@ -87,10 +89,10 @@
   --r-pill: 999px;
 
   /* ---- Layout ------------------------------------------------------------ */
-  --shell: 1200px;          /* max content width */
+  --shell: 1240px;          /* max content width — the artifact's measure */
   --shell-narrow: 760px;    /* prose measure */
-  --gutter: var(--s-5);
-  --header-h: 68px;
+  --gutter: 22px;           /* artifact gutter; 40px from 900px up */
+  --header-h: 78px;         /* artifact masthead height */
   --actionbar-h: 74px;      /* mobile bottom action bar */
   --tap: 44px;              /* minimum interactive target */
 

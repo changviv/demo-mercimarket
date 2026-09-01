@@ -29,6 +29,27 @@ video {
   max-width: 100%;
 }
 
+/* `height: auto` is the required companion to `max-width: 100%`.
+   The width/height ATTRIBUTES on an <img> are presentation hints, and when both
+   are present they beat `aspect-ratio` outright — so every image was rendering
+   at its intrinsic height (the hero photo came out 960px tall instead of 441).
+   The attributes still earn their keep: they reserve the right box before the
+   file loads, which is what stops layout shift. */
+img {
+  height: auto;
+}
+
+/* Form controls do NOT inherit typography by default — a <button> carries the
+   UA's own font and `line-height: normal`, which is why text inside a button
+   sat 4-7px tighter than the same text outside one. */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
 /* ---- Headings ------------------------------------------------------------ */
 
 h1,
@@ -145,6 +166,20 @@ hr {
 .section {
   padding-top: var(--s-16);
   padding-bottom: var(--s-16);
+}
+
+/* Anything the masthead can jump to needs clearance beneath it, or the sticky
+   header covers the heading you just navigated to. */
+[id]:target,
+.section[id],
+.picker[id] {
+  scroll-margin-top: calc(var(--header-h) + var(--s-4));
+}
+
+/* A section focused by the nav is a scroll destination, not a control. */
+.section[id]:focus,
+.picker[id]:focus {
+  outline: none;
 }
 
 .section--tight {

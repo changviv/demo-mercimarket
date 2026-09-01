@@ -76,14 +76,16 @@ export default function Catering() {
       </section>
 
       <section className="facts" aria-label="Merci Market catering in numbers">
-        <ul className="shell facts__grid">
-          {CATERING_FACTS.map((f) => (
-            <li key={f.n} className="fact">
-              <span className="fact__n">{f.n}</span>
-              <span className="fact__t">{f.t}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="shell">
+          <ul className="facts__grid">
+            {CATERING_FACTS.map((f) => (
+              <li key={f.n} className="fact">
+                <b>{f.n}</b>
+                <span>{f.t}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       {/* ---- How it works --------------------------------------------------- */}
@@ -128,7 +130,7 @@ export default function Catering() {
       </section>
 
       {/* ---- Eight sections --------------------------------------------------- */}
-      <section className="section section--band" aria-labelledby="sec-head">
+      <section className="section section--band" id="sections" aria-labelledby="sec-head">
         <div className="shell">
           <h2 id="sec-head">Eight sections, priced per person</h2>
           <p className="lede">{SECTIONS_INTRO}</p>
@@ -145,7 +147,7 @@ export default function Catering() {
       </section>
 
       {/* ---- Story ------------------------------------------------------------ */}
-      <section className="section" aria-labelledby="story-head">
+      <section className="section" id="story" aria-labelledby="story-head">
         <div className="shell split split--flip">
           <div className="split__copy">
             <p className="eyebrow">{STORY.eyebrow}</p>

@@ -49,11 +49,17 @@ export const COPYRIGHT = `© ${new Date().getFullYear()} Merci Market NYC. All R
 
 /* ---- Masthead (prototype section 2) --------------------------------------- */
 
+/* Masthead navigation.
+
+   These are IN-APP anchors, not links off to mercimarketnyc.com. Each one names
+   a section that exists in this app; clicking it scrolls there, and when the
+   section lives on another route the app navigates first and then scrolls.
+   Nothing in the header leaves the site. */
 export const SITE_NAV = [
-  { label: 'Home', to: '/' },
-  { label: 'About', href: `${MAIN_SITE}/about/`, external: true },
-  { label: 'Menu', href: `${MAIN_SITE}/menu/`, external: true },
-  { label: 'Locations', href: `${MAIN_SITE}/locations/`, external: true },
+  { label: 'Home', to: '/', hash: '' },
+  { label: 'About', to: '/catering', hash: 'story' },
+  { label: 'Menu', to: '/catering', hash: 'sections' },
+  { label: 'Locations', to: '/', hash: 'pick' },
 ];
 
 export const MINIMUM_GUESTS = 8;

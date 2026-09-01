@@ -3,14 +3,23 @@ import { Link, useLocation } from 'react-router-dom';
 import { SITE_NAV } from '../data/site.js';
 import { useOrder } from '../state/OrderContext.jsx';
 import { getLocation } from '../data/locations.js';
+import NavAnchor from './NavAnchor.jsx';
 import logo from '/img/logo-tomato.webp';
 
-/* Header + mobile drawer.
+/* Masthead, matching the approved hero artifact (37aef8e5):
+   78px tall, 42px logo, nav, then Order Pickup (outline) + Start a Catering
+   Order (solid) pushed right.
 
-   The drawer is a dialog: it traps focus, closes on Escape and on backdrop
-   click, restores focus to the trigger, and locks body scroll while open.
-   A hamburger that merely reveals a div does none of that, and on iOS the page
-   behind it scrolls while the menu sits still. */
+   Two things the artifact does that the earlier build did not:
+   - the logo stands alone. No "Catering" label beside it; the wordmark is the
+     brand and a second word next to it reads as a different company.
+   - nav items are in-app anchors (see NavAnchor) rather than links off to
+     mercimarketnyc.com.
+
+   The drawer is a real dialog: focus trapped, Escape closes, focus restored to
+   the trigger, body scroll locked. A hamburger that only reveals a div does
+   none of that, and on iOS the page behind it scrolls while the menu sits
+   still. */
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -62,44 +71,32 @@ export default function Header() {
   return (
     <header className="mast">
       <div className="shell mast__inner">
-        <Link to="/" className="mast__brand" aria-label="Merci Market NYC catering — home">
-          <img src={logo} alt="" width="132" height="34" />
-          <span className="mast__sub">Catering</span>
+        <Link to="/" className="mast__brand" aria-label="Merci Market NYC — home">
+          <img src={logo} alt="Merci Market NYC" width="163" height="42" />
         </Link>
 
         <nav className="mast__nav" aria-label="Main">
           <ul className="mast__list">
             {SITE_NAV.map((n) => (
               <li key={n.label}>
-                {n.external ? (
-                  <a href={n.href} className="mast__link">
-                    {n.label}
-                  </a>
-                ) : (
-                  <Link
-                    to={n.to}
-                    className="mast__link"
-                    aria-current={pathname === n.to ? 'page' : undefined}
-                  >
-                    {n.label}
-                  </Link>
-                )}
+                <NavAnchor to={n.to} hash={n.hash} className="mast__link">
+                  {n.label}
+                </NavAnchor>
               </li>
             ))}
           </ul>
         </nav>
 
         <div className="mast__end">
-          {location ? (
+          {location && (
             <Link to={`/menu/${location.id}`} className="mast__store">
               <span className="mast__store-label">Ordering from</span>
               <span className="mast__store-name">{location.name}</span>
             </Link>
-          ) : (
-            <Link to="/" className="btn btn--ghost mast__cta">
-              Order Pickup
-            </Link>
           )}
+          <NavAnchor to="/" hash="pick" className="btn btn--ghost mast__cta mast__cta--out">
+            Order Pickup
+          </NavAnchor>
           <Link to="/catering" className="btn btn--primary mast__cta">
             Start a Catering Order
           </Link>
@@ -135,15 +132,14 @@ export default function Header() {
             <ul className="drawer__list">
               {SITE_NAV.map((n) => (
                 <li key={n.label}>
-                  {n.external ? (
-                    <a href={n.href} className="drawer__link">
-                      {n.label}
-                    </a>
-                  ) : (
-                    <Link to={n.to} className="drawer__link">
-                      {n.label}
-                    </Link>
-                  )}
+                  <NavAnchor
+                    to={n.to}
+                    hash={n.hash}
+                    className="drawer__link"
+                    onNavigate={() => setOpen(false)}
+                  >
+                    {n.label}
+                  </NavAnchor>
                 </li>
               ))}
             </ul>
@@ -151,7 +147,10 @@ export default function Header() {
               Start a Catering Order
             </Link>
             {location && (
-              <Link to={`/menu/${location.id}`} className="btn btn--ghost btn--block drawer__second">
+              <Link
+                to={`/menu/${location.id}`}
+                className="btn btn--ghost btn--block drawer__second"
+              >
                 Back to the {location.name} menu
               </Link>
             )}

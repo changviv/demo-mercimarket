@@ -1,20 +1,27 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LOCATIONS, locationStatus } from '../data/locations.js';
 import { HERO, MODES, HERO_FACTS, MINIMUM_GUESTS } from '../data/site.js';
 import { useOrder } from '../state/OrderContext.jsx';
+import { Clock, Arrow } from '../components/Icons.jsx';
 import storefront from '/img/storefront.webp';
 
-/* Prototype section 2 — "Home & store picker".
+/* Prototype section 2 — "Home & store picker", built to the approved hero
+   artifact (37aef8e5).
 
-   The store picker IS the hero. Everything downstream — prices, hours, lead
-   times, which Toast restaurant and which Stripe account — is per-kitchen, so
-   nothing on this site can be honest until this question is answered.
+   Layout, in the artifact's order:
+     hero band  — eyebrow pill, H1 with "Six Locations" in tomato, lede, then
+                  the mode switch INSIDE the left column; the photo on the right
+                  with the 24-hour card floating over its bottom-left corner
+     picker     — on the page ground, not a white band; six cards, each split
+                  into a body and a footer strip
+     facts      — four figures in a white band, divided by hairlines
 
-   The mode switch is the part that makes it a homepage rather than a catering
-   landing page: the same six stores serve pickup, delivery and catering, and
-   the switch changes the picker's heading and each card's CTA. Only catering
-   carries the eight-person minimum, so only catering shows it. */
+   The store picker is the hero. Every price, lead time, Toast restaurant and
+   Stripe account downstream is per-kitchen, so nothing on this site can be
+   honest until this question is answered. The mode switch is what makes it a
+   homepage rather than a catering landing page: the same six stores serve
+   pickup, delivery and catering, and only catering carries the minimum. */
 
 export default function Home() {
   const [mode, setMode] = useState('catering');
@@ -35,115 +42,117 @@ export default function Home() {
 
   return (
     <>
+      {/* ---- Hero ------------------------------------------------------------ */}
       <section className="hero" aria-labelledby="hero-head">
         <div className="shell hero__grid">
           <div className="hero__copy">
-            <p className="eyebrow">{HERO.eyebrow}</p>
-            <h1 id="hero-head">{HERO.title}</h1>
-            <p className="lede">{HERO.lede}</p>
+            <p className="hero__eyebrow">{HERO.eyebrow}</p>
+
+            <h1 id="hero-head">
+              Serving You at <em>Six Locations</em> in NYC
+            </h1>
+
+            <p className="hero__sub">{HERO.lede}</p>
+
+            <div className="modes">
+              <p className="modes__label" id="mode-label">
+                {HERO.modeLabel}
+              </p>
+              <div className="modebar" role="group" aria-labelledby="mode-label">
+                {MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className="mode"
+                    aria-pressed={mode === m.id}
+                    onClick={() => setMode(m.id)}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <figure className="hero__figure">
-            <img
-              src={storefront}
-              alt="The Merci Market storefront on a Manhattan corner, awning out, produce on the pavement."
-              width="1200"
-              height="960"
-              fetchPriority="high"
-            />
-          </figure>
-        </div>
-      </section>
-
-      {/* ---- Mode switch + picker ------------------------------------------ */}
-      <section className="picker" id="pick" aria-labelledby="pick-head">
-        <div className="shell">
-          <div className="modes">
-            <p className="modes__label" id="mode-label">
-              {HERO.modeLabel}
-            </p>
-            <div className="modes__set" role="tablist" aria-labelledby="mode-label">
-              {MODES.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  role="tab"
-                  className={`mode${mode === m.id ? ' mode--on' : ''}`}
-                  aria-selected={mode === m.id}
-                  onClick={() => setMode(m.id)}
-                >
-                  {m.label}
-                </button>
-              ))}
+          <div className="hero__art">
+            <div className="hero__frame">
+              <img
+                src={storefront}
+                alt="The Merci Market storefront on a Manhattan corner, awning out, flowers on the pavement."
+                width="1200"
+                height="960"
+                fetchPriority="high"
+              />
             </div>
-
-            <p className="modes__note">
-              <span className="modes__dot" aria-hidden="true" />
+            <p className="floater">
+              <span className="floater__dot" aria-hidden="true" />
               <span>
-                <strong>{HERO.openNote.title}</strong>
-                <span>{HERO.openNote.sub}</span>
+                <b>{HERO.openNote.title}</b>
+                <i>{HERO.openNote.sub}</i>
               </span>
             </p>
           </div>
-
-          <div className="picker__head">
-            <h2 id="pick-head">{active.title}</h2>
-            <p className="picker__note">{HERO.pickerSub}</p>
-          </div>
-
-          <ul className="picker__grid grid">
-            {LOCATIONS.map((loc) => {
-              const st = locationStatus(loc);
-              return (
-                <li key={loc.id}>
-                  <button type="button" className="loc" onClick={() => choose(loc)}>
-                    <span className={`pill ${st.open ? 'pill--open' : 'pill--shut'}`}>
-                      {st.label}
-                    </span>
-                    <span className="loc__body">
-                      <span className="loc__name">{loc.name}</span>
-                      <span className="loc__addr">{loc.addr}</span>
-                      <span className="loc__addr loc__addr--dim">{loc.city}</span>
-                    </span>
-                    <span className="loc__today">
-                      <span className="loc__today-k">Today</span>
-                      <span className="loc__today-v">{st.today}</span>
-                    </span>
-                    <span className="loc__foot">
-                      <span className="loc__go">{active.cta}</span>
-                      {active.min && (
-                        <span className="loc__min">Min {MINIMUM_GUESTS} people</span>
-                      )}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
         </div>
       </section>
 
-      {/* ---- Facts ---------------------------------------------------------- */}
-      <section className="facts" aria-label="Merci Market in numbers">
-        <ul className="shell facts__grid">
-          {HERO_FACTS.map((f) => (
-            <li key={f.n} className="fact">
-              <span className="fact__n">{f.n}</span>
-              <span className="fact__t">{f.t}</span>
-            </li>
-          ))}
+      {/* ---- Picker ----------------------------------------------------------- */}
+      <section className="shell picker" id="pick" aria-labelledby="pick-head">
+        <div className="picker__head">
+          <h2 id="pick-head">{active.title}</h2>
+          <p>{HERO.pickerSub}</p>
+        </div>
+
+        <ul className="picker__grid">
+          {LOCATIONS.map((loc) => {
+            const st = locationStatus(loc);
+            return (
+              <li key={loc.id}>
+                <button type="button" className="loc" onClick={() => choose(loc)}>
+                  <span className="loc__top">
+                    <span className={`pill ${st.open ? 'pill--open' : 'pill--shut'}`}>
+                      <span className="pill__dot" aria-hidden="true" />
+                      {st.label}
+                    </span>
+                    <span className="loc__name">{loc.name}</span>
+                    <span className="loc__addr">
+                      {loc.addr}
+                      <br />
+                      {loc.city}
+                    </span>
+                    <span className="loc__hours">
+                      <Clock />
+                      <span>Today&nbsp;&nbsp;{st.today}</span>
+                    </span>
+                  </span>
+
+                  <span className="loc__foot">
+                    <span className="loc__cta">
+                      {active.cta}
+                      <Arrow />
+                    </span>
+                    {active.min && (
+                      <span className="loc__min">Min {MINIMUM_GUESTS} people</span>
+                    )}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </section>
 
-      <section className="section shell crosslink">
-        <h2>Catering for a group?</h2>
-        <p>
-          Eight-person minimum, per-person pricing and a real total before you commit — no
-          quote form and no callback.
-        </p>
-        <Link to="/catering" className="btn btn--primary btn--lg">
-          See how catering works
-        </Link>
+      {/* ---- Facts ------------------------------------------------------------- */}
+      <section className="facts" aria-label="Merci Market in numbers">
+        <div className="shell">
+          <ul className="facts__grid">
+            {HERO_FACTS.map((f) => (
+              <li key={f.n} className="fact">
+                <b>{f.n}</b>
+                <span>{f.t}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
     </>
   );
