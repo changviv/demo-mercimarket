@@ -174,23 +174,46 @@ async function run() {
         }
       }
 
-      /* The home page hands off to catering directly after the locations. */
+      /* The home page descends by intent: hero, locations, facts, catering,
+         story. Assert the ORDER, not just the presence — a section that drifts
+         up or down the page changes what the page is for. */
       if (route === '/') {
-        const cta = await page.evaluate(() => {
-          const c = document.getElementById('catering-cta');
-          if (!c) return { missing: true };
-          const y = (e) => e.getBoundingClientRect().top + window.scrollY;
+        const flow = await page.evaluate(() => {
+          const y = (sel) => {
+            const e = document.querySelector(sel);
+            return e ? e.getBoundingClientRect().top + window.scrollY : null;
+          };
+          const cta = document.getElementById('catering-cta');
           return {
-            afterPicker: y(document.getElementById('pick')) < y(c),
-            beforeFacts: y(c) < y(document.querySelector('.facts')),
-            links: [...c.querySelectorAll('a')].map((a) => a.getAttribute('href')),
+            hero: y('.hero'),
+            pick: y('#pick'),
+            facts: y('.facts'),
+            cta: y('#catering-cta'),
+            story: y('#story'),
+            ctaLinks: cta ? [...cta.querySelectorAll('a')].map((a) => a.getAttribute('href')) : [],
+            storyHeading: (document.querySelector('#story h2') || {}).textContent || '',
           };
         });
-        if (cta.missing) problems.push(`${route} — catering CTA section missing`);
-        else {
-          if (!cta.afterPicker) problems.push(`${route} — catering CTA is not after the locations`);
-          if (!cta.beforeFacts) problems.push(`${route} — catering CTA is not before the facts strip`);
-          if (!cta.links.includes('/catering')) problems.push(`${route} — catering CTA does not link to /catering`);
+
+        for (const [name, v] of Object.entries(flow)) {
+          if (v === null) problems.push(`${route} — section missing: ${name}`);
+        }
+        const seq = [
+          ['hero', 'pick'],
+          ['pick', 'facts'],
+          ['facts', 'cta'],
+          ['cta', 'story'],
+        ];
+        for (const [a, c] of seq) {
+          if (flow[a] !== null && flow[c] !== null && !(flow[a] < flow[c])) {
+            problems.push(`${route} — ${c} is not below ${a}`);
+          }
+        }
+        if (!flow.ctaLinks.includes('/catering')) {
+          problems.push(`${route} — catering CTA does not link to /catering`);
+        }
+        if (!/Our Story Began in 1979/.test(flow.storyHeading)) {
+          problems.push(`${route} — story section heading is "${flow.storyHeading}"`);
         }
       }
 

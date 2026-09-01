@@ -57,7 +57,7 @@ export const COPYRIGHT = `© ${new Date().getFullYear()} Merci Market NYC. All R
    Nothing in the header leaves the site. */
 export const SITE_NAV = [
   { label: 'Home', to: '/', hash: '' },
-  { label: 'About', to: '/catering', hash: 'story' },
+  { label: 'About', to: '/', hash: 'story' },
   { label: 'Menu', to: '/catering', hash: 'sections' },
   { label: 'Locations', to: '/', hash: 'pick' },
 ];

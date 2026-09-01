@@ -7,7 +7,6 @@ import {
   OCCASIONS,
   OCCASIONS_INTRO,
   SECTIONS_INTRO,
-  STORY,
   FAQ,
   FAQ_INTRO,
   PICK_CTA,
@@ -15,13 +14,12 @@ import {
 import { MENU } from '../data/menu.js';
 import StatStrip from '../components/StatStrip.jsx';
 import SectionHead from '../components/SectionHead.jsx';
-import ArtFrame, { DotBadge, SinceBadge } from '../components/ArtFrame.jsx';
+import ArtFrame, { DotBadge } from '../components/ArtFrame.jsx';
 import Faq from '../components/Faq.jsx';
 import CtaCard from '../components/CtaCard.jsx';
 import { Arrow } from '../components/Icons.jsx';
 import spread from '/img/spread.webp';
 import tray from '/img/tray.webp';
-import storefront from '/img/storefront.webp';
 
 /* Prototype section 1 — "The pitch, before they order", built to the approved
    catering artifact (b099617a).
@@ -36,11 +34,13 @@ import storefront from '/img/storefront.webp';
      what we cater six occasion cards, each jumping into the menu category that
                    serves it rather than the top of a 76-item list
      menu peek     photo beside the eight categories as counted pills
-     story         photo with an "Est. 1979" tab, beside the 1979 copy
      FAQ           six questions; the three the client still owes go honey
      closing CTA   a centred card — NOT the six-card picker. The picker lives on
                    the home page; repeating it here would give one page two
                    competing primary actions.
+
+   The 1979 story now lives on the home page, where "About" points and where a
+   brand story belongs — this page is the transaction.
 
    Every block on this page is a shared component. It was duplicated markup that
    let the store picker rot on this route while the home copy was rebuilt. */
@@ -149,29 +149,6 @@ export default function Catering() {
                 </li>
               ))}
             </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Story -------------------------------------------------------------- */}
-      <section className="shell section" id="story" aria-labelledby="story-head">
-        <div className="story">
-          <ArtFrame
-            src={storefront}
-            alt="The Merci Market storefront on a Manhattan corner, awning out, flowers on the pavement."
-            width="1200"
-            height="900"
-            ratio="4 / 3"
-            badge={<SinceBadge>{STORY.eyebrow}</SinceBadge>}
-          />
-          <div className="story__txt">
-            <h2 id="story-head">{STORY.title}</h2>
-            {STORY.body.map((p) => (
-              <p key={p.slice(0, 24)}>{p}</p>
-            ))}
-            <a className="btn btn--ghost" href={STORY.href}>
-              {STORY.cta}
-            </a>
           </div>
         </div>
       </section>

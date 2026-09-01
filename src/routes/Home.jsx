@@ -1,23 +1,32 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { HERO, MODES, HERO_FACTS, HOME_CATERING_CTA } from '../data/site.js';
+import { HERO, MODES, HERO_FACTS, HOME_CATERING_CTA, STORY } from '../data/site.js';
 import { useOrder } from '../state/OrderContext.jsx';
 import StorePicker from '../components/StorePicker.jsx';
 import StatStrip from '../components/StatStrip.jsx';
-import ArtFrame, { DotBadge } from '../components/ArtFrame.jsx';
+import ArtFrame, { DotBadge, SinceBadge } from '../components/ArtFrame.jsx';
 import CtaCard from '../components/CtaCard.jsx';
 import storefront from '/img/storefront.webp';
+import spread from '/img/spread.webp';
 
 /* Prototype section 2 — "Home & store picker", built to the approved hero
    artifact (37aef8e5).
 
-   Layout, in the artifact's order:
-     hero band  — eyebrow pill, H1 with "Six Locations" in tomato, lede, then
-                  the mode switch INSIDE the left column; the photo on the right
-                  with the 24-hour card floating over its bottom-left corner
-     picker     — on the page ground, not a white band; six cards, each split
-                  into a body and a footer strip
-     facts      — four figures in a white band, divided by hairlines
+   Section order, and the reasoning behind it — the page descends by intent,
+   from the thing a ready visitor came to do down to the thing a browsing one
+   might read:
+
+     1 hero          who we are, and "what are you ordering?"
+     2 locations     the primary action. Pick a kitchen and you are in the funnel
+     3 facts         four figures that answer "are these people any good?" in one
+                     scan, for anyone who did not click
+     4 catering      the secondary conversion path, for the visitor who is
+                     feeding a group rather than themselves
+     5 story         the brand, last. Lowest intent, highest patience — and where
+                     the masthead's About link points
+
+   The 1979 figure closing the facts strip sets up the story section directly
+   beneath it, so the two read as one thought rather than two blocks.
 
    The store picker is the hero. Every price, lead time, Toast restaurant and
    Stripe account downstream is per-kitchen, so nothing on this site can be
@@ -97,6 +106,9 @@ export default function Home() {
         onChoose={choose}
       />
 
+      {/* ---- Facts ------------------------------------------------------------- */}
+      <StatStrip stats={HERO_FACTS} tone="surface" label="Merci Market in numbers" />
+
       {/* ---- Catering hand-off, straight after the locations -------------------- */}
       <CtaCard
         id="catering-cta"
@@ -115,8 +127,28 @@ export default function Home() {
         }
       />
 
-      {/* ---- Facts ------------------------------------------------------------- */}
-      <StatStrip stats={HERO_FACTS} tone="surface" label="Merci Market in numbers" />
+      {/* ---- Story — the brand, and where About points -------------------------- */}
+      <section className="shell section" id="story" aria-labelledby="story-head">
+        <div className="story">
+          <ArtFrame
+            src={spread}
+            alt="An overhead spread of Merci Market food: sandwiches, salads, fruit and pastries laid out on a table."
+            width="1200"
+            height="900"
+            ratio="4 / 3"
+            badge={<SinceBadge>{STORY.eyebrow}</SinceBadge>}
+          />
+          <div className="story__txt">
+            <h2 id="story-head">{STORY.title}</h2>
+            {STORY.body.map((p) => (
+              <p key={p.slice(0, 24)}>{p}</p>
+            ))}
+            <a className="btn btn--ghost" href={STORY.href}>
+              {STORY.cta}
+            </a>
+          </div>
+        </div>
+      </section>
     </>
   );
 }

@@ -37,7 +37,6 @@ const EXPECT = [
       'Community events',
       'Weekly office breakfast',
       'Eight sections, priced per person',
-      'Our Story Began in 1979',
       'The questions people ask before they order',
       'How many people do I need to order for?',
       'Which stores are open when I need them?',
@@ -47,7 +46,7 @@ const EXPECT = [
       'What if I need to cancel?',
       'Which kitchen is cooking?',
     ],
-    cta: ['Choose your store', 'How it works', 'Read more about us', 'Browse the full menu'],
+    cta: ['Choose your store', 'How it works', 'Browse the full menu'],
     // Three FAQs the client still owes an answer to must be visibly flagged.
     count: [['.q--tbd', 3], ['.step', 3], ['.oc', 6], ['.catpill', 8], ['.closecta', 1]],
   },
@@ -72,9 +71,19 @@ const EXPECT = [
       // The catering hand-off, directly after the locations.
       'Catering for every occasion',
       'Eight-person minimum, per-person pricing',
+      // The 1979 story lives here now, and is where About points.
+      'Our Story Began in 1979',
+      'a family tradition born in New York City',
     ],
-    cta: ['Pickup', 'Delivery', 'Catering', 'See how catering works', 'Browse the full menu'],
-    count: [['.loc', 6], ['.mode', 3], ['.fact', 4], ['#catering-cta', 1]],
+    cta: [
+      'Pickup',
+      'Delivery',
+      'Catering',
+      'See how catering works',
+      'Browse the full menu',
+      'Read more about us',
+    ],
+    count: [['.loc', 6], ['.mode', 3], ['.fact', 4], ['#catering-cta', 1], ['#story', 1]],
   },
   {
     section: '3 · Menu browse',
