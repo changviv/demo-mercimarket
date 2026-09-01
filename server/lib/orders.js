@@ -15,6 +15,45 @@
 
 const orders = new Map();
 
+/* A worked example so /orders/preview renders the way the prototype's section 6
+   does — a real order mid-flight, with a hold on it. Demo data, clearly marked.
+   Delete this with the Map when a real store goes in. */
+const PREVIEW = {
+  id: 'preview',
+  reference: 'MM-BP-4820',
+  title: 'Thursday breakfast for the 12th floor',
+  status: 'in_kitchen',
+  paymentStatus: 'authorized',
+  locationId: 'bryant-park',
+  locationName: 'Bryant Park',
+  guests: 12,
+  fulfillment: 'delivery',
+  date: nextThursdayISO(),
+  time: '8:00 – 9:00 am',
+  contact: { name: 'Dana Reyes', email: 'dana@example.com', phone: '2125551234' },
+  address: { line1: '101 Park Ave', line2: '', zip: '10178' },
+  changeCutoffLabel: '6:00 pm the night before',
+  changeLocked: false,
+  card: { brand: 'Visa', last4: '4242' },
+  lines: [
+    { id: 'l1', name: 'Fresh Start Breakfast', price: 13.99, qty: 1, unit: 'person', selections: ['Regular Coffee'] },
+    { id: 'l2', name: 'Fruit Platter', price: 9.5, qty: 1, unit: 'person', selections: ['Vegetarian'] },
+    { id: 'l3', name: 'Box of Coffee', price: 31.99, qty: 2, unit: 'box', serves: 12, selections: [] },
+  ],
+  subtotal: 345.86,
+  tax: 30.7,
+  authorizedAmount: 376.56,
+  demo: true,
+};
+
+function nextThursdayISO() {
+  const d = new Date();
+  d.setDate(d.getDate() + ((4 - d.getDay() + 7) % 7 || 7));
+  return d.toISOString().slice(0, 10);
+}
+
+orders.set('preview', PREVIEW);
+
 const REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1
 
 export function newReference() {

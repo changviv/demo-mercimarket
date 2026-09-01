@@ -4,8 +4,8 @@ import { useEffect, useRef } from 'react';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
 import Home from './routes/Home.jsx';
+import Catering from './routes/Catering.jsx';
 import Menu from './routes/Menu.jsx';
-import Item from './routes/Item.jsx';
 import Checkout from './routes/Checkout.jsx';
 import OrderManage from './routes/OrderManage.jsx';
 import NotFound from './routes/NotFound.jsx';
@@ -43,8 +43,8 @@ export default function App() {
       <main id="main" tabIndex={-1}>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/catering" element={<Catering />} />
           <Route path="/menu/:locationId" element={<Menu />} />
-          <Route path="/menu/:locationId/item/:itemId" element={<Item />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/orders/:orderId" element={<OrderManage />} />
           <Route path="*" element={<NotFound />} />

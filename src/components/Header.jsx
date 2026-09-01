@@ -76,7 +76,11 @@ export default function Header() {
                     {n.label}
                   </a>
                 ) : (
-                  <Link to={n.to} className="mast__link" aria-current={pathname === n.to ? 'page' : undefined}>
+                  <Link
+                    to={n.to}
+                    className="mast__link"
+                    aria-current={pathname === n.to ? 'page' : undefined}
+                  >
                     {n.label}
                   </Link>
                 )}
@@ -86,12 +90,19 @@ export default function Header() {
         </nav>
 
         <div className="mast__end">
-          {location && (
+          {location ? (
             <Link to={`/menu/${location.id}`} className="mast__store">
               <span className="mast__store-label">Ordering from</span>
               <span className="mast__store-name">{location.name}</span>
             </Link>
+          ) : (
+            <Link to="/" className="btn btn--ghost mast__cta">
+              Order Pickup
+            </Link>
           )}
+          <Link to="/catering" className="btn btn--primary mast__cta">
+            Start a Catering Order
+          </Link>
           <button
             type="button"
             ref={triggerRef}
@@ -136,8 +147,11 @@ export default function Header() {
                 </li>
               ))}
             </ul>
+            <Link to="/catering" className="btn btn--primary btn--block">
+              Start a Catering Order
+            </Link>
             {location && (
-              <Link to={`/menu/${location.id}`} className="btn btn--primary btn--block">
+              <Link to={`/menu/${location.id}`} className="btn btn--ghost btn--block drawer__second">
                 Back to the {location.name} menu
               </Link>
             )}

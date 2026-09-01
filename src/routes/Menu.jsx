@@ -1,26 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { MENU } from '../data/menu.js';
-import { getLocation, locationStatus } from '../data/locations.js';
+import { MENU, findItem } from '../data/menu.js';
+import { getLocation } from '../data/locations.js';
 import { useOrder, useSyncLocation, lineTotal } from '../state/OrderContext.jsx';
 import { money, plural } from '../lib/format.js';
-import { MINIMUM_GUESTS } from '../data/site.js';
+import { MINIMUM_GUESTS, MAIN_SITE } from '../data/site.js';
+import ItemSheet from '../components/ItemSheet.jsx';
 import ActionBar from '../components/ActionBar.jsx';
 
-/* Section 3 — menu browse.
+/* Prototype section 3 — "76 items, guest-count pricing".
 
-   Three things the live site does not do, and this does:
-   1. Headcount is a control, not a sentence. Set it once; all 76 prices
-      restate as "$13.99 x 14 = $195.86" so nobody multiplies in their head.
-   2. Categories are a rail with scroll-spy, so at 76 items you always know
-      where you are.
-   3. The 8-person minimum is enforced at the point it applies — on the platter
-      categories — instead of being printed as a note and ignored. */
+   The headcount is a control, not a sentence. Set it once and every one of the
+   76 prices restates as "$90.00 for 12", so nobody multiplies in their head or
+   discovers the real number at checkout.
+
+   Filters are the three the prototype names — Most popular, Vegetarian,
+   Individually packed — which map to flags that actually exist in the data,
+   rather than invented facets. */
 
 const FILTERS = [
-  { id: 'popular', label: 'Popular' },
+  { id: 'popular', label: 'Most popular' },
   { id: 'vegetarian', label: 'Vegetarian' },
-  { id: 'nomin', label: 'No minimum' },
+  { id: 'individual', label: 'Individually packed' },
 ];
 
 export default function Menu() {
@@ -31,6 +32,7 @@ export default function Menu() {
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState([]);
   const [active, setActive] = useState(MENU[0].id);
+  const [sheetId, setSheetId] = useState(null);
   const sectionRefs = useRef({});
 
   useSyncLocation(location?.id);
@@ -46,47 +48,38 @@ export default function Menu() {
         if (q && !`${it.name} ${it.desc}`.toLowerCase().includes(q)) return false;
         if (filters.includes('popular') && !it.popular) return false;
         if (filters.includes('vegetarian') && !it.vegetarian) return false;
-        if (filters.includes('nomin') && cat.min > 1) return false;
+        if (filters.includes('individual') && !cat.indiv) return false;
         return true;
       }),
     })).filter((cat) => cat.items.length > 0);
   }, [query, filters]);
 
-  /* Scroll-spy for the category rail.
-
-     Deliberately a scroll listener rather than an IntersectionObserver. An
-     observer only tells you which sections CHANGED state, so a jump — an anchor
-     click, or scrolling straight back to the top — can fire a callback in which
-     nothing is intersecting, and the rail then keeps highlighting whatever it
-     last saw. Recomputing from actual positions is jump-proof, and eight
-     sections behind a rAF costs nothing. */
+  /* Scroll-spy. Deliberately a scroll listener rather than an
+     IntersectionObserver: an observer only reports sections that CHANGED
+     state, so a jump — an anchor click, or scrolling straight back to the top —
+     can fire with nothing intersecting and leave the rail stuck on whatever it
+     last saw. Recomputing from positions is jump-proof. */
   useEffect(() => {
     let frame = 0;
-
     const measure = () => {
       frame = 0;
-      // Must sit BELOW where an anchor jump parks a section, or the section you
-      // just jumped to reads as "not reached yet" and the rail highlights the
-      // one above it. .cat sets scroll-margin-top: header + 60px = 128px.
+      // Must sit below where an anchor jump parks a section (scroll-margin-top),
+      // or the section you just jumped to reads as "not reached yet".
       const line = 150;
-      let current = MENU[0].id;
-      for (const cat of MENU) {
+      let current = shown[0]?.id || MENU[0].id;
+      for (const cat of shown) {
         const el = sectionRefs.current[cat.id];
-        if (!el) continue;
-        if (el.getBoundingClientRect().top <= line) current = cat.id;
+        if (el && el.getBoundingClientRect().top <= line) current = cat.id;
       }
-      // At the very bottom the last section may never cross the line.
       if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 2) {
-        const last = [...MENU].reverse().find((c) => sectionRefs.current[c.id]);
+        const last = [...shown].reverse().find((c) => sectionRefs.current[c.id]);
         if (last) current = last.id;
       }
       setActive(current);
     };
-
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(measure);
     };
-
     measure();
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
@@ -97,38 +90,55 @@ export default function Menu() {
     };
   }, [shown]);
 
+  /* An occasion card on the catering page jumps into the category that serves
+     it, rather than dropping people at the top of a 76-item list. */
+  useEffect(() => {
+    const cat = sessionStorage.getItem('mm.jumpCat');
+    if (!cat) return;
+    sessionStorage.removeItem('mm.jumpCat');
+    const el = document.getElementById(cat);
+    if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  }, []);
+
   const resultCount = shown.reduce((n, c) => n + c.items.length, 0);
   const filtering = Boolean(query.trim()) || filters.length > 0;
+  const sheetItem = sheetId ? findItem(sheetId) : null;
 
   if (!location) return <Navigate to="/" replace />;
 
-  const st = locationStatus(location);
   const belowMin = order.guests < MINIMUM_GUESTS;
 
   return (
     <>
-      <div className="menubar">
-        <div className="shell menubar__inner">
-          <div className="menubar__where">
-            <Link to="/" className="menubar__back">
-              ← All locations
+      {/* ---- Store bar ------------------------------------------------------ */}
+      <div className="storebar">
+        <div className="shell storebar__in">
+          <h1 className="storebar__store">
+            <span className="storebar__name">{location.name}</span>
+            <span className="storebar__addr">· {location.addr}</span>
+          </h1>
+          <p className="storebar__links">
+            <Link to="/" className="storebar__link">
+              Change store
             </Link>
-            {/* The store name is this page's h1 — it is what the page is about,
-                and without it the menu jumped straight to h2 category headings. */}
-            <h1 className="menubar__store">
-              <span className="menubar__name">{location.name}</span>
-              <span className="menubar__addr">{location.addr}</span>
-              <span className={`pill ${st.open ? 'pill--open' : 'pill--shut'}`}>{st.label}</span>
-            </h1>
-          </div>
+            <a href={`${MAIN_SITE}/locations/`} className="btn btn--ghost">
+              Locations
+            </a>
+          </p>
+        </div>
+      </div>
 
+      {/* ---- Guests + filters ----------------------------------------------- */}
+      <div className="menubar">
+        <div className="shell menubar__in">
           <div className="guests">
             <label className="guests__label" htmlFor="guests">
-              How many people?
+              Guests
             </label>
             <div className="guests__control">
               <button
                 type="button"
+                id="minus"
                 className="guests__step"
                 onClick={() => dispatch({ type: 'setGuests', guests: order.guests - 1 })}
                 disabled={order.guests <= 1}
@@ -148,6 +158,7 @@ export default function Menu() {
               />
               <button
                 type="button"
+                id="plus"
                 className="guests__step"
                 onClick={() => dispatch({ type: 'setGuests', guests: order.guests + 1 })}
                 disabled={order.guests >= 500}
@@ -157,6 +168,34 @@ export default function Menu() {
               </button>
             </div>
           </div>
+
+          <div className="tools__search">
+            <label className="visually-hidden" htmlFor="q">
+              Search the menu
+            </label>
+            <input
+              id="q"
+              className="input"
+              type="search"
+              placeholder="Search the menu…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="tools__filters" role="group" aria-label="Filter the menu">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={`chip${filters.includes(f.id) ? ' chip--on' : ''}`}
+                aria-pressed={filters.includes(f.id)}
+                onClick={() => toggleFilter(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {belowMin && (
@@ -164,62 +203,38 @@ export default function Menu() {
             <p className="note note--ask menubar__warn" role="status">
               Platters need {MINIMUM_GUESTS} people or more. At {plural(order.guests, 'guest')}{' '}
               you can still order individually packed breakfast, boxed lunches and
-              beverages — use the <strong>No minimum</strong> filter.
+              beverages — use the <strong>Individually packed</strong> filter.
             </p>
           </div>
         )}
       </div>
 
       <div className="shell layout">
-        {/* ---- Category rail ---------------------------------------------- */}
-        <nav className="rail" aria-label="Menu categories">
-          <ul className="rail__list">
-            {MENU.map((cat) => (
-              <li key={cat.id}>
-                <a
-                  href={`#${cat.id}`}
-                  className={`rail__link${active === cat.id ? ' rail__link--on' : ''}`}
-                  aria-current={active === cat.id ? 'true' : undefined}
-                >
-                  {cat.name}
-                  <span className="rail__count">{cat.items.length}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
+        {/* ---- Category rail ------------------------------------------------ */}
+        <nav className="rail" aria-labelledby="rail-head">
+          <div className="rail__inner">
+            <h2 className="rail__head" id="rail-head">
+              Categories
+            </h2>
+            <ul className="rail__list">
+              {MENU.map((cat) => (
+                <li key={cat.id}>
+                  <a
+                    href={`#${cat.id}`}
+                    className={`rail__link${active === cat.id ? ' rail__link--on' : ''}`}
+                    aria-current={active === cat.id ? 'true' : undefined}
+                  >
+                    {cat.name}
+                    <span className="rail__count">{cat.items.length}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
         </nav>
 
-        {/* ---- Menu -------------------------------------------------------- */}
+        {/* ---- Menu ---------------------------------------------------------- */}
         <div className="menu">
-          <div className="tools">
-            <div className="tools__search">
-              <label className="visually-hidden" htmlFor="q">
-                Search the menu
-              </label>
-              <input
-                id="q"
-                className="input"
-                type="search"
-                placeholder="Search the menu…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
-            <div className="tools__filters" role="group" aria-label="Filter the menu">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  className={`chip${filters.includes(f.id) ? ' chip--on' : ''}`}
-                  aria-pressed={filters.includes(f.id)}
-                  onClick={() => toggleFilter(f.id)}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <p className="tools__result" role="status" aria-live="polite">
             {filtering
               ? `${resultCount} of 76 items`
@@ -269,14 +284,18 @@ export default function Menu() {
               aria-labelledby={`${cat.id}-h`}
             >
               <div className="cat__head">
-                <h2 id={`${cat.id}-h`}>{cat.name}</h2>
-                <p className="cat__note">{cat.note}</p>
+                <h3 id={`${cat.id}-h`}>{cat.name}</h3>
+                {cat.indiv ? (
+                  <span className="badge badge--min">Individually packed</span>
+                ) : (
+                  <span className="cat__note">{cat.note}</span>
+                )}
               </div>
 
               <ul className="cards grid">
                 {cat.items.map((it) => (
                   <li key={it.id}>
-                    <ItemCard item={it} cat={cat} locationId={location.id} guests={order.guests} />
+                    <ItemCard item={it} guests={order.guests} onOpen={() => setSheetId(it.id)} />
                   </li>
                 ))}
               </ul>
@@ -284,65 +303,95 @@ export default function Menu() {
           ))}
         </div>
 
-        {/* ---- Sticky summary (desktop) ------------------------------------ */}
+        {/* ---- Your order ---------------------------------------------------- */}
         <aside className="summary" aria-labelledby="sum-h">
           <div className="summary__inner card">
             <h2 id="sum-h" className="summary__h">
               Your order
             </h2>
+            <p className="summary__meta">
+              Catering order
+              <span>For {plural(order.guests, 'guest')}</span>
+            </p>
+
             {order.lines.length === 0 ? (
               <p className="summary__empty">
-                Nothing added yet. Prices below already include your headcount, so what
-                you see is what you pay.
+                Nothing added yet. Set your guest count first — every price below
+                recalculates to a real total.
               </p>
             ) : (
-              <>
-                <ul className="summary__list">
-                  {order.lines.map((l) => (
-                    <li key={l.uid} className="summary__line">
-                      <span className="summary__name">
-                        {l.name}
-                        <span className="summary__qty">
-                          {l.unit === 'box'
-                            ? `${l.qty} × box`
-                            : `${order.guests} × ${money(l.price)}`}
-                          {l.qty > 1 && l.unit !== 'box' ? ` × ${l.qty}` : ''}
-                        </span>
+              <ul className="summary__list">
+                {order.lines.map((l) => (
+                  <li key={l.uid} className="summary__line">
+                    <span className="summary__name">
+                      {l.name}
+                      <span className="summary__qty">
+                        {l.unit === 'box'
+                          ? `${l.qty} ${l.qty === 1 ? 'box' : 'boxes'} · serves ${l.serves * l.qty}`
+                          : `${order.guests} guests${
+                              Object.values(l.selections || {}).flat().length
+                                ? ` · ${Object.values(l.selections).flat().join(', ')}`
+                                : ''
+                            }`}
                       </span>
-                      <span className="summary__amt money">
-                        {money(lineTotal(l, order.guests))}
-                      </span>
-                      <button
-                        type="button"
-                        className="summary__x"
-                        onClick={() => dispatch({ type: 'removeLine', uid: l.uid })}
-                      >
-                        <span aria-hidden="true">×</span>
-                        <span className="visually-hidden">Remove {l.name}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <p className="summary__total">
-                  <span>Subtotal</span>
-                  <span className="money">{money(totals.subtotal)}</span>
-                </p>
-                <p className="summary__tax">Tax and any delivery fee are added at checkout.</p>
-                <Link to="/checkout" className="btn btn--primary btn--block">
-                  Review and check out
-                </Link>
-              </>
+                    </span>
+                    <span className="summary__amt money">{money(lineTotal(l, order.guests))}</span>
+                    <button
+                      type="button"
+                      className="summary__x"
+                      onClick={() => dispatch({ type: 'removeLine', uid: l.uid })}
+                    >
+                      <span aria-hidden="true">×</span>
+                      <span className="visually-hidden">Remove {l.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
+
+            <p className="summary__total">
+              <span>Estimated subtotal</span>
+              <span className="money">{money(totals.subtotal)}</span>
+            </p>
+
+            <Link
+              to="/checkout"
+              className={`btn btn--primary btn--block${totals.count === 0 ? ' btn--off' : ''}`}
+              aria-disabled={totals.count === 0}
+              onClick={(e) => {
+                if (totals.count === 0) e.preventDefault();
+              }}
+            >
+              Continue to delivery
+            </Link>
+
+            <p className="summary__tax">
+              Lead time, delivery radius and fee are still to be confirmed — they belong
+              here, above the button.
+            </p>
           </div>
         </aside>
       </div>
+
+      {sheetItem && (
+        <ItemSheet
+          key={sheetItem.id}
+          item={sheetItem}
+          guests={order.guests}
+          onClose={() => setSheetId(null)}
+          onAdd={(line) => {
+            dispatch({ type: 'addLine', line });
+            setSheetId(null);
+          }}
+        />
+      )}
 
       <ActionBar
         count={totals.count}
         total={totals.subtotal}
         summary={location.name}
         detail={plural(order.guests, 'guest')}
-        actionLabel={totals.count === 0 ? 'Add something' : 'Check out'}
+        actionLabel={totals.count === 0 ? 'Add something' : 'Continue to delivery'}
         to={totals.count > 0 ? '/checkout' : undefined}
         onAction={() =>
           document.getElementById(MENU[0].id)?.scrollIntoView({ behavior: 'smooth' })
@@ -352,45 +401,43 @@ export default function Menu() {
   );
 }
 
-function ItemCard({ item, cat, locationId, guests }) {
+function ItemCard({ item, guests, onOpen }) {
   const units = item.unit === 'box' ? 1 : guests;
   const total = item.price * units;
 
   return (
-    <Link to={`/menu/${locationId}/item/${item.id}`} className="card2">
-      <span className="card2__top">
-        <span className="card2__name">{item.name}</span>
-        <span className="card2__tags">
-          {item.popular && <span className="pill pill--pop">Popular</span>}
-          {item.vegetarian && <span className="pill pill--veg">Vegetarian</span>}
+    <article className="item">
+      <div className="item__top">
+        <h4 className="item__name">{item.name}</h4>
+        <span className="item__badges">
+          {item.popular && <span className="badge badge--pop">Most popular</span>}
+          {item.vegetarian && <span className="badge badge--veg">Vegetarian</span>}
         </span>
-      </span>
+      </div>
 
-      <span className="card2__desc">{item.desc}</span>
+      <p className="item__desc">{item.desc}</p>
 
-      {item.rule && <span className="card2__rule">{item.rule}</span>}
+      {item.rule && <p className="item__rule">{item.rule}</p>}
 
       {item.dataFlag && (
-        <span className="card2__flag">
+        <p className="item__flag">
           <strong>Check this price.</strong> {item.dataFlag}
-        </span>
+        </p>
       )}
 
-      <span className="card2__foot">
-        <span className="card2__price money">
+      <div className="item__price">
+        <span className="item__unit money">
           <strong>{money(item.price)}</strong>
-          <span className="card2__per">
-            {item.unit === 'box' ? `per box · serves ${item.serves}` : 'per person'}
+          <em>{item.unit === 'box' ? `per box · serves ${item.serves}` : 'per person'}</em>
+          <span className="item__line">
+            {item.unit === 'box' ? money(total) : `${money(total)} for ${guests}`}
           </span>
         </span>
-        <span className="card2__calc money">
-          {item.unit === 'box' ? money(total) : `${money(item.price)} × ${guests} = ${money(total)}`}
-        </span>
-      </span>
-
-      <span className="card2__cta" aria-hidden="true">
-        {item.groups.length ? 'Choose options →' : 'Add to order →'}
-      </span>
-    </Link>
+        <button type="button" className="add" onClick={onOpen}>
+          Add
+          <span className="visually-hidden"> {item.name}</span>
+        </button>
+      </div>
+    </article>
   );
 }

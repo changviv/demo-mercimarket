@@ -2,44 +2,48 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useOrder, lineTotal } from '../state/OrderContext.jsx';
 import { getLocation } from '../data/locations.js';
-import { money, dateLong, daysUntil, todayISO, plural } from '../lib/format.js';
+import { DELIVERY_WINDOWS, TAX_RATE } from '../data/site.js';
+import { money, daysUntil, plural } from '../lib/format.js';
 import { priceOrder, createOrder } from '../lib/api.js';
 import StripePayment from '../components/StripePayment.jsx';
-import ActionBar from '../components/ActionBar.jsx';
 
-/* Section 5 — checkout.
+/* Prototype section 5 — "Toast + Stripe, per location".
 
-   Four steps, because four things genuinely have to be decided and bundling
-   them into one 14-field form is how catering carts get abandoned.
+   Four steps, one screen. An accordion rather than a wizard, because the whole
+   form stays visible as a list of what is still to answer, and any completed
+   step can be reopened with Edit without losing the ones after it.
 
-   The payment copy is not decoration. Stripe holds a card authorization for a
-   limited window, and catering is routinely ordered further out than that
-   window. So the wording changes with the date:
-     <= 7 days   normal authorization, captured on fulfillment
-     8-30 days   extended authorization requested
-     > 30 days   no hold is possible; the card is saved and charged on the day
-   Telling someone their card is "held" for a booking six weeks out would be a
-   straightforward lie. */
+   The hold copy is the honest part, and it changes with the date. A card
+   authorization does not live forever: roughly 7 days on the major networks,
+   extendable to about 30 where the card and account support it, and nothing
+   beyond that. Catering is routinely booked further out than any of those
+   windows, so the wording has to say what will actually happen. */
 
-const STEPS = ['When and where', 'Who to contact', 'Payment', 'Confirm'];
+const STEPS = [
+  { n: 1, title: 'When do you need it?', fallback: 'Choose a date and time' },
+  { n: 2, title: 'Delivery or pickup?', fallback: 'Not chosen' },
+  { n: 3, title: 'Who is it for?', fallback: 'Contact details' },
+  { n: 4, title: 'Payment', fallback: 'Card hold, charged on delivery' },
+];
 
 export default function Checkout() {
   const { order, dispatch, totals } = useOrder();
   const location = order.locationId ? getLocation(order.locationId) : null;
   const navigate = useNavigate();
 
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(1);
+  const [done, setDone] = useState({});
+  const [touched, setTouched] = useState({});
   const [pricing, setPricing] = useState(null);
   const [clientSecret, setClientSecret] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [touched, setTouched] = useState(false);
+  const [useSaved, setUseSaved] = useState(true);
   const confirmCard = useRef(null);
 
   const lead = daysUntil(order.date);
-  const authMode = lead == null ? null : lead <= 7 ? 'hold' : lead <= 30 ? 'extended' : 'saved';
 
-  /* Toast, not this app, computes tax and service charges. Ask it whenever the
+  /* Toast, not this app, computes tax and service charges. Ask whenever the
      basket or the fulfillment choice changes. */
   useEffect(() => {
     if (!location || order.lines.length === 0) return undefined;
@@ -57,22 +61,29 @@ export default function Checkout() {
     };
   }, [location, order.lines, order.guests, order.fulfillment]);
 
-  const errors = useMemo(() => validate(order, step), [order, step]);
-  const stepValid = Object.keys(errors).length === 0;
+  const errors = useMemo(() => validate(order), [order]);
 
   if (!location) return <Navigate to="/" replace />;
   if (order.lines.length === 0) return <EmptyBasket />;
 
-  const displayTotal = pricing?.total ?? totals.subtotal;
+  const subtotal = pricing?.subtotal ?? totals.subtotal;
+  const tax = pricing?.taxKnown ? pricing.tax : subtotal * TAX_RATE;
+  const total = pricing?.taxKnown ? pricing.total : subtotal + tax;
 
-  async function next() {
-    setTouched(true);
-    if (!stepValid) return;
-    setTouched(false);
+  const stepErrors = {
+    1: pick(errors, ['date', 'time']),
+    2: pick(errors, order.fulfillment === 'delivery' ? ['line1'] : []),
+    3: pick(errors, ['name', 'email', 'phone']),
+    4: {},
+  };
+
+  async function advance(n) {
+    setTouched((t) => ({ ...t, [n]: true }));
+    if (Object.keys(stepErrors[n]).length) return;
+    setDone((d) => ({ ...d, [n]: true }));
     setError(null);
 
-    if (step === 1) {
-      // Entering payment: create the Toast order and the manual-capture intent.
+    if (n === 3) {
       setBusy(true);
       try {
         const res = await createOrder({
@@ -88,6 +99,7 @@ export default function Checkout() {
             itemId: l.itemId,
             qty: l.qty,
             selections: l.selections,
+            allergies: l.allergies,
           })),
         });
         setClientSecret(res.clientSecret || null);
@@ -101,7 +113,7 @@ export default function Checkout() {
       setBusy(false);
     }
 
-    setStep((s) => Math.min(STEPS.length - 1, s + 1));
+    setStep(n + 1);
   }
 
   async function place() {
@@ -109,7 +121,7 @@ export default function Checkout() {
     setError(null);
     try {
       const submit = confirmCard.current;
-      if (submit) {
+      if (submit && !useSaved) {
         const ready = await submit();
         if (!ready) {
           setBusy(false);
@@ -134,23 +146,43 @@ export default function Checkout() {
     }
   }
 
+  const summaries = {
+    1: order.date && order.time ? `${order.date} · ${order.time}` : null,
+    2:
+      order.fulfillment === 'delivery'
+        ? order.address.line1
+          ? `Delivery to ${order.address.line1}`
+          : 'Deliver to me'
+        : `Pickup · ${location.addr}`,
+    3: order.contact.name ? `${order.contact.name} · ${order.contact.email}` : null,
+    4: null,
+  };
+
   return (
     <div className="shell co">
       <div className="co__main">
-        <ol className="steps2" aria-label="Checkout progress">
-          {STEPS.map((s, i) => (
-            <li
-              key={s}
-              className={`steps2__i${i === step ? ' steps2__i--on' : ''}${i < step ? ' steps2__i--done' : ''}`}
-              aria-current={i === step ? 'step' : undefined}
-            >
-              <span className="steps2__n" aria-hidden="true">
-                {i < step ? '✓' : i + 1}
-              </span>
-              <span className="steps2__l">{s}</span>
-            </li>
-          ))}
-        </ol>
+        <div className="co__intro">
+          <h1>Checkout</h1>
+          <p>
+            Four steps, one screen, nothing hidden until the end. The card is authorized
+            now and charged when the order goes out — so a headcount that moves does not
+            mean a refund. Built against your Toast and Stripe setup: one Toast restaurant
+            and one Stripe account per location.
+          </p>
+        </div>
+
+        <div className="lock">
+          <span aria-hidden="true" className="lock__i" />
+          <span>
+            <strong>
+              Ordering from Merci Market {location.name} · {location.addr}
+            </strong>
+            <span>
+              This order goes to {location.name}&rsquo;s kitchen and is paid to{' '}
+              {location.name}. Items from another store need their own order.
+            </span>
+          </span>
+        </div>
 
         {error && (
           <p className="note note--stop" role="alert">
@@ -158,260 +190,272 @@ export default function Checkout() {
           </p>
         )}
 
-        {/* ---- Step 1 ---------------------------------------------------- */}
-        {step === 0 && (
-          <section aria-labelledby="s1">
-            <h1 id="s1">When and where</h1>
+        <div className="steps3">
+          {STEPS.map((s) => {
+            const open = step === s.n;
+            const complete = done[s.n];
+            const errs = touched[s.n] ? stepErrors[s.n] : {};
 
-            <div className="field">
-              <span className="field__label" id="ff-label">
-                How do you want it?
-              </span>
-              <div className="segment" role="radiogroup" aria-labelledby="ff-label">
-                {[
-                  { id: 'pickup', label: 'Pick up', sub: `${location.name} · ${location.addr}` },
-                  { id: 'delivery', label: 'Delivery', sub: 'Radius and fee not yet set' },
-                ].map((o) => (
-                  <label key={o.id} className={`segment__o${order.fulfillment === o.id ? ' segment__o--on' : ''}`}>
-                    <input
-                      type="radio"
-                      name="fulfillment"
-                      checked={order.fulfillment === o.id}
-                      onChange={() => dispatch({ type: 'setField', field: 'fulfillment', value: o.id })}
-                    />
-                    <span className="segment__label">{o.label}</span>
-                    <span className="segment__sub">{o.sub}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            return (
+              <section key={s.n} className={`step3${open ? ' step3--open' : ''}`}>
+                <h2 className="step3__h">
+                  <button
+                    type="button"
+                    className="st-head"
+                    aria-expanded={open}
+                    onClick={() => setStep(open ? 0 : s.n)}
+                  >
+                    <span className="st-n" aria-hidden="true">
+                      {complete ? '✓' : s.n}
+                    </span>
+                    <span className="st-t">
+                      <strong>{s.title}</strong>
+                      <span className="st-sum">{summaries[s.n] || s.fallback}</span>
+                    </span>
+                    <span className="st-edit">{complete && !open ? 'Edit' : ''}</span>
+                  </button>
+                </h2>
 
-            {order.fulfillment === 'delivery' && (
-              <>
-                <p className="note note--ask">
-                  <span>
-                    <strong>Delivery is not live yet.</strong> The radius and the fee are
-                    still to be set. You can enter an address and the kitchen will call to
-                    confirm before anything is charged.
-                  </span>
-                </p>
-                <Field
-                  label="Street address"
-                  id="addr1"
-                  value={order.address.line1}
-                  onChange={(v) => dispatch({ type: 'setAddress', patch: { line1: v } })}
-                  error={touched && errors.line1}
-                  autoComplete="address-line1"
-                />
-                <div className="grid grid--2">
-                  <Field
-                    label="Floor, suite, buzzer"
-                    id="addr2"
-                    optional
-                    value={order.address.line2}
-                    onChange={(v) => dispatch({ type: 'setAddress', patch: { line2: v } })}
-                    autoComplete="address-line2"
-                  />
-                  <Field
-                    label="ZIP"
-                    id="zip"
-                    value={order.address.zip}
-                    onChange={(v) => dispatch({ type: 'setAddress', patch: { zip: v } })}
-                    error={touched && errors.zip}
-                    inputMode="numeric"
-                    autoComplete="postal-code"
-                  />
-                </div>
-              </>
-            )}
+                {open && (
+                  <div className="st-body">
+                    {s.n === 1 && (
+                      <>
+                        <div className="grid grid--2">
+                          <Field
+                            label={order.fulfillment === 'delivery' ? 'Delivery date' : 'Pickup date'}
+                            id="date"
+                            type="date"
+                            min={tomorrowISO()}
+                            value={order.date}
+                            onChange={(v) => dispatch({ type: 'setField', field: 'date', value: v })}
+                            hint="Earliest available is tomorrow."
+                            error={errs.date}
+                          />
+                          <p className="field">
+                            <label className="field__label" htmlFor="time">
+                              {order.fulfillment === 'delivery' ? 'Delivery window' : 'Pickup window'}
+                            </label>
+                            <select
+                              id="time"
+                              className="select"
+                              value={order.time}
+                              onChange={(e) =>
+                                dispatch({ type: 'setField', field: 'time', value: e.target.value })
+                              }
+                              aria-invalid={errs.time ? 'true' : undefined}
+                            >
+                              <option value="">Choose a window</option>
+                              {DELIVERY_WINDOWS.map((w) => (
+                                <option key={w}>{w}</option>
+                              ))}
+                            </select>
+                            {errs.time ? (
+                              <span className="field__error">{errs.time}</span>
+                            ) : (
+                              <span className="field__hint">
+                                Windows shown are placeholders pending your real cut-off
+                                rules.
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <StepFoot onNext={() => advance(1)} busy={busy} />
+                      </>
+                    )}
 
-            <div className="grid grid--2">
-              <Field
-                label="Date"
-                id="date"
-                type="date"
-                min={todayISO()}
-                value={order.date}
-                onChange={(v) => dispatch({ type: 'setField', field: 'date', value: v })}
-                error={touched && errors.date}
-              />
-              <Field
-                label={order.fulfillment === 'pickup' ? 'Pickup time' : 'Delivery time'}
-                id="time"
-                type="time"
-                value={order.time}
-                onChange={(v) => dispatch({ type: 'setField', field: 'time', value: v })}
-                error={touched && errors.time}
-              />
-            </div>
+                    {s.n === 2 && (
+                      <>
+                        <div className="segment">
+                          {[
+                            {
+                              id: 'delivery',
+                              label: 'Deliver to me',
+                              sub: 'Fee and radius to be confirmed',
+                            },
+                            {
+                              id: 'pickup',
+                              label: 'I’ll pick it up',
+                              sub: `${location.addr}, no fee`,
+                            },
+                          ].map((o) => (
+                            <label
+                              key={o.id}
+                              className={`segment__o${order.fulfillment === o.id ? ' segment__o--on' : ''}`}
+                            >
+                              <input
+                                type="radio"
+                                name="fulfillment"
+                                checked={order.fulfillment === o.id}
+                                onChange={() =>
+                                  dispatch({ type: 'setField', field: 'fulfillment', value: o.id })
+                                }
+                              />
+                              <span className="segment__label">{o.label}</span>
+                              <span className="segment__sub">{o.sub}</span>
+                            </label>
+                          ))}
+                        </div>
 
-            {lead != null && lead <= 0 && (
-              <p className="note note--ask">
-                <span>
-                  <strong>That is today.</strong> Lead time has not been set by the
-                  kitchens yet, so a same-day order is accepted here and flagged for a
-                  callback rather than silently promised.
-                </span>
-              </p>
-            )}
+                        {order.fulfillment === 'delivery' && (
+                          <>
+                            <Field
+                              label="Delivery address"
+                              id="addr1"
+                              value={order.address.line1}
+                              onChange={(v) => dispatch({ type: 'setAddress', patch: { line1: v } })}
+                              error={errs.line1}
+                              autoComplete="address-line1"
+                            />
+                            <Field
+                              label="Notes for the driver"
+                              id="deliv"
+                              optional
+                              value={order.notes}
+                              onChange={(v) => dispatch({ type: 'setField', field: 'notes', value: v })}
+                              placeholder="e.g. reception on 12, ask for Dana"
+                            />
+                          </>
+                        )}
 
-            <div className="field">
-              <label className="field__label" htmlFor="notes">
-                Anything the kitchen should know? <span className="field__opt">Optional</span>
-              </label>
-              <textarea
-                id="notes"
-                className="textarea"
-                value={order.notes}
-                onChange={(e) => dispatch({ type: 'setField', field: 'notes', value: e.target.value })}
-                placeholder="Allergies, where to leave it, who to ask for."
-              />
-            </div>
-          </section>
-        )}
+                        <StepFoot onNext={() => advance(2)} busy={busy} />
+                      </>
+                    )}
 
-        {/* ---- Step 2 ---------------------------------------------------- */}
-        {step === 1 && (
-          <section aria-labelledby="s2">
-            <h1 id="s2">Who to contact</h1>
-            <p className="lede">One person the kitchen can reach on the day.</p>
+                    {s.n === 3 && (
+                      <>
+                        <div className="grid grid--2">
+                          <Field
+                            label="Full name"
+                            id="name"
+                            value={order.contact.name}
+                            onChange={(v) => dispatch({ type: 'setContact', patch: { name: v } })}
+                            error={errs.name}
+                            autoComplete="name"
+                          />
+                          <Field
+                            label="Company"
+                            id="co"
+                            optional
+                            value={order.contact.company}
+                            onChange={(v) => dispatch({ type: 'setContact', patch: { company: v } })}
+                            autoComplete="organization"
+                          />
+                          <Field
+                            label="Email"
+                            id="email"
+                            type="email"
+                            value={order.contact.email}
+                            onChange={(v) => dispatch({ type: 'setContact', patch: { email: v } })}
+                            hint="Confirmation and receipt go here."
+                            error={errs.email}
+                            autoComplete="email"
+                          />
+                          <Field
+                            label="Mobile"
+                            id="phone"
+                            type="tel"
+                            value={order.contact.phone}
+                            onChange={(v) => dispatch({ type: 'setContact', patch: { phone: v } })}
+                            hint="The driver calls this on the day."
+                            error={errs.phone}
+                            autoComplete="tel"
+                          />
+                        </div>
+                        <StepFoot onNext={() => advance(3)} busy={busy} />
+                      </>
+                    )}
 
-            <div className="grid grid--2">
-              <Field
-                label="Your name"
-                id="name"
-                value={order.contact.name}
-                onChange={(v) => dispatch({ type: 'setContact', patch: { name: v } })}
-                error={touched && errors.name}
-                autoComplete="name"
-              />
-              <Field
-                label="Company"
-                id="company"
-                optional
-                value={order.contact.company}
-                onChange={(v) => dispatch({ type: 'setContact', patch: { company: v } })}
-                autoComplete="organization"
-              />
-              <Field
-                label="Email"
-                id="email"
-                type="email"
-                value={order.contact.email}
-                onChange={(v) => dispatch({ type: 'setContact', patch: { email: v } })}
-                error={touched && errors.email}
-                autoComplete="email"
-                hint="Your receipt and any change confirmation go here."
-              />
-              <Field
-                label="Mobile"
-                id="phone"
-                type="tel"
-                value={order.contact.phone}
-                onChange={(v) => dispatch({ type: 'setContact', patch: { phone: v } })}
-                error={touched && errors.phone}
-                autoComplete="tel"
-                hint="Used only if there is a problem on the day."
-              />
-            </div>
-          </section>
-        )}
+                    {s.n === 4 && (
+                      <>
+                        <button
+                          type="button"
+                          className={`saved${useSaved ? ' saved--on' : ''}`}
+                          onClick={() => setUseSaved(true)}
+                          aria-pressed={useSaved}
+                        >
+                          <span className="saved__mk" aria-hidden="true" />
+                          <span>
+                            <strong>Visa ending 4242</strong>
+                            <span>Saved from your last {location.name} order</span>
+                          </span>
+                        </button>
 
-        {/* ---- Step 3 ---------------------------------------------------- */}
-        {step === 2 && (
-          <section aria-labelledby="s3">
-            <h1 id="s3">Payment</h1>
+                        <button
+                          type="button"
+                          className={`saved${!useSaved ? ' saved--on' : ''}`}
+                          onClick={() => setUseSaved(false)}
+                          aria-pressed={!useSaved}
+                        >
+                          <span className="saved__mk" aria-hidden="true" />
+                          <span>
+                            <strong>Use a different card</strong>
+                            <span>Entered securely with Stripe</span>
+                          </span>
+                        </button>
 
-            <AuthExplainer mode={authMode} lead={lead} date={order.date} total={displayTotal} />
+                        {!useSaved && (
+                          <div className="pm">
+                            <StripePayment
+                              locationId={location.id}
+                              clientSecret={clientSecret}
+                              onReady={(fn) => {
+                                confirmCard.current = fn;
+                              }}
+                              onError={setError}
+                            />
+                            <p className="meta">
+                              Card details go straight to Stripe from your browser, keyed to{' '}
+                              {location.name}&rsquo;s own Stripe account. They never reach
+                              Merci Market&rsquo;s servers.
+                            </p>
+                          </div>
+                        )}
 
-            <StripePayment
-              locationId={location.id}
-              clientSecret={clientSecret}
-              onReady={(fn) => {
-                confirmCard.current = fn;
-              }}
-              onError={setError}
-            />
+                        <HoldBand lead={lead} total={total} />
 
-            <p className="meta co__pci">
-              Card details go straight to Stripe from your browser. They never reach Merci
-              Market&rsquo;s servers.
-            </p>
-          </section>
-        )}
-
-        {/* ---- Step 4 ---------------------------------------------------- */}
-        {step === 3 && (
-          <section aria-labelledby="s4">
-            <h1 id="s4">Confirm</h1>
-
-            <dl className="review">
-              <Row k="Kitchen" v={`${location.name} — ${location.addr}`} />
-              <Row
-                k={order.fulfillment === 'pickup' ? 'Pickup' : 'Delivery'}
-                v={`${dateLong(order.date)} at ${order.time}`}
-              />
-              {order.fulfillment === 'delivery' && (
-                <Row k="Address" v={`${order.address.line1} ${order.address.line2} ${order.address.zip}`} />
-              )}
-              <Row k="Headcount" v={plural(order.guests, 'person', 'people')} />
-              <Row k="Contact" v={`${order.contact.name} · ${order.contact.email} · ${order.contact.phone}`} />
-              {order.notes && <Row k="Notes" v={order.notes} />}
-            </dl>
-
-            <AuthExplainer mode={authMode} lead={lead} date={order.date} total={displayTotal} compact />
-
-            <button
-              type="button"
-              className="btn btn--primary btn--lg btn--block"
-              onClick={place}
-              disabled={busy}
-            >
-              {busy
-                ? 'Placing the order…'
-                : `Place order · ${pricing?.taxKnown ? '' : 'from '}${money(displayTotal)}`}
-            </button>
-          </section>
-        )}
-
-        {/* ---- Step nav ---------------------------------------------------- */}
-        {step < 3 && (
-          <div className="co__nav row row--between">
-            {step === 0 ? (
-              <Link to={`/menu/${location.id}`} className="btn btn--ghost">
-                ← Back to menu
-              </Link>
-            ) : (
-              <button type="button" className="btn btn--ghost" onClick={() => setStep((s) => s - 1)}>
-                ← Back
-              </button>
-            )}
-            <button type="button" className="btn btn--primary btn--lg" onClick={next} disabled={busy}>
-              {busy ? 'Working…' : step === 1 ? 'Continue to payment' : 'Continue'}
-            </button>
-          </div>
-        )}
-
-        {touched && !stepValid && (
-          <p className="field__error" role="alert">
-            Fill in the highlighted fields to continue.
-          </p>
-        )}
+                        <div className="stepfoot">
+                          <button
+                            type="button"
+                            className="btn btn--primary btn--lg"
+                            onClick={place}
+                            disabled={busy}
+                          >
+                            {busy ? 'Placing the order…' : `Place order · ${money(total)}`}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </section>
+            );
+          })}
+        </div>
       </div>
 
-      {/* ---- Order summary ------------------------------------------------ */}
+      {/* ---- Your order ------------------------------------------------------ */}
       <aside className="co__side" aria-labelledby="co-sum">
         <div className="card card--pad">
           <h2 id="co-sum" className="summary__h">
-            {plural(totals.count, 'item')} for {plural(order.guests, 'person', 'people')}
+            Your order
           </h2>
+          <p className="summary__meta">
+            {location.name} · {plural(order.guests, 'guest')}
+          </p>
+
           <ul className="summary__list">
             {order.lines.map((l) => (
-              <li key={l.uid} className="summary__line">
+              <li key={l.uid} className="summary__line summary__line--flat">
                 <span className="summary__name">
                   {l.name}
                   <span className="summary__qty">
-                    {Object.values(l.selections || {}).flat().join(', ') || '—'}
+                    {l.unit === 'box'
+                      ? `${l.qty} ${l.qty === 1 ? 'box' : 'boxes'} · serves ${l.serves * l.qty}`
+                      : `${order.guests} guests${
+                          Object.values(l.selections || {}).flat().length
+                            ? ` · ${Object.values(l.selections).flat().join(', ')}`
+                            : ''
+                        }`}
                   </span>
                 </span>
                 <span className="summary__amt money">{money(lineTotal(l, order.guests))}</span>
@@ -420,76 +464,71 @@ export default function Checkout() {
           </ul>
 
           <dl className="tot">
-            <TotRow k="Subtotal" v={money(pricing?.subtotal ?? totals.subtotal)} />
-            {pricing?.serviceCharges > 0 && <TotRow k="Service" v={money(pricing.serviceCharges)} />}
-            {/* Gate on taxKnown, not on `pricing`. The fallback response IS a
-                pricing object, with tax: 0 — rendering that as "$0.00" states a
-                tax figure we do not have, next to a card field. */}
-            <TotRow
-              k="Tax"
-              v={pricing?.taxKnown ? money(pricing.tax) : 'Set by the kitchen'}
-            />
-            <TotRow
-              k={pricing?.taxKnown ? 'Total' : 'Total before tax'}
-              v={money(displayTotal)}
-              strong
-            />
+            <div className="tot__row">
+              <dt>Subtotal</dt>
+              <dd className="money">{money(subtotal)}</dd>
+            </div>
+            {order.fulfillment === 'delivery' && (
+              <div className="tot__row tot__row--pending">
+                <dt>Delivery fee</dt>
+                <dd>To be confirmed</dd>
+              </div>
+            )}
+            <div className="tot__row">
+              <dt>Sales tax ({(TAX_RATE * 100).toFixed(3)}%)</dt>
+              <dd className="money">{money(tax)}</dd>
+            </div>
+            <div className="tot__row tot__row--strong">
+              <dt>Estimated total</dt>
+              <dd className="money">{money(total)}</dd>
+            </div>
           </dl>
 
-          {!pricing?.taxKnown && (
-            <p className="meta">
-              Tax is applied at {location.name}&rsquo;s own register rate and appears on
-              your receipt. We do not estimate it here rather than show you a number that
-              turns out to be wrong.
-            </p>
-          )}
+          <p className="meta">
+            Tax is calculated by Toast at each location, not hard-coded here.
+            {order.fulfillment === 'delivery' &&
+              ' The delivery fee is the one number still missing from your side.'}
+          </p>
 
           <Link to={`/menu/${location.id}`} className="btn btn--quiet">
             Edit order
           </Link>
         </div>
       </aside>
-
-      <ActionBar
-        summary={STEPS[step]}
-        detail={money(displayTotal)}
-        actionLabel={step === 3 ? 'Place order' : 'Continue'}
-        onAction={step === 3 ? place : next}
-        disabled={busy}
-      />
     </div>
   );
 }
 
 /* -------------------------------------------------------------------------- */
 
-function AuthExplainer({ mode, lead, date, total, compact }) {
-  if (!mode) return null;
+function HoldBand({ lead, total }) {
+  let title = 'You will not be charged today';
+  let body = `We place a hold for ${money(total)} and charge the final amount when your order goes out.`;
 
-  const copy = {
-    hold: {
-      cls: 'note--go',
-      title: 'Your card is held, not charged.',
-      body: `We authorize ${money(total)} now and charge it when the food goes out on ${dateLong(date)}. If your final headcount is lower, you are charged the lower amount.`,
-    },
-    extended: {
-      cls: 'note',
-      title: 'Extended authorization.',
-      body: `Your event is ${lead} days out, past the usual 7-day hold. We request an extended authorization so the hold survives to ${dateLong(date)}. If your bank declines the extension we will email you to re-confirm before the day.`,
-    },
-    saved: {
-      cls: 'note--ask',
-      title: 'No hold is placed this far ahead.',
-      body: `${dateLong(date)} is ${lead} days out — beyond what any card network will hold. Your card is saved securely with Stripe and charged on the day instead. Nothing is taken now.`,
-    },
-  }[mode];
+  if (lead != null && lead > 30) {
+    title = 'Your card is saved, not held yet';
+    body = `That date is ${lead} days away — longer than a card authorization can last. We save your card now and place the hold about a week before, then charge when the order goes out. We will email you when the hold is placed.`;
+  } else if (lead != null && lead > 7) {
+    body = `We place an extended hold for ${money(total)} that stays valid for your ${lead}-day lead time, and charge the final amount when your order goes out.`;
+  }
 
   return (
-    <div className={`note ${copy.cls}`}>
+    <div className="hold">
+      <span className="hold__i" aria-hidden="true" />
       <span>
-        <strong>{copy.title}</strong> {!compact && copy.body}
-        {compact && ` ${money(total)} on ${dateLong(date)}.`}
+        <strong>{title}</strong>
+        <span>{body}</span>
       </span>
+    </div>
+  );
+}
+
+function StepFoot({ onNext, busy }) {
+  return (
+    <div className="stepfoot">
+      <button type="button" className="btn btn--primary" onClick={onNext} disabled={busy}>
+        {busy ? 'Working…' : 'Continue'}
+      </button>
     </div>
   );
 }
@@ -498,7 +537,7 @@ function Field({ label, id, value, onChange, error, optional, hint, type = 'text
   return (
     <p className="field">
       <label className="field__label" htmlFor={id}>
-        {label} {optional && <span className="field__opt">Optional</span>}
+        {label} {optional && <span className="field__opt">optional</span>}
       </label>
       <input
         id={id}
@@ -524,20 +563,6 @@ function Field({ label, id, value, onChange, error, optional, hint, type = 'text
   );
 }
 
-const Row = ({ k, v }) => (
-  <div className="review__row">
-    <dt>{k}</dt>
-    <dd>{v}</dd>
-  </div>
-);
-
-const TotRow = ({ k, v, strong }) => (
-  <div className={`tot__row${strong ? ' tot__row--strong' : ''}`}>
-    <dt>{k}</dt>
-    <dd className="money">{v}</dd>
-  </div>
-);
-
 function EmptyBasket() {
   return (
     <div className="shell section">
@@ -545,28 +570,31 @@ function EmptyBasket() {
         <h1>There is nothing on this order yet</h1>
         <p>Pick a kitchen and add a platter, and this page will have something to check out.</p>
         <Link to="/" className="btn btn--primary">
-          Pick a location
+          Choose your store
         </Link>
       </div>
     </div>
   );
 }
 
-function validate(order, step) {
+const pick = (obj, keys) =>
+  Object.fromEntries(Object.entries(obj).filter(([k]) => keys.includes(k)));
+
+function tomorrowISO() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(d);
+}
+
+function validate(order) {
   const e = {};
-  if (step === 0) {
-    if (!order.date) e.date = 'Pick a date.';
-    if (!order.time) e.time = 'Pick a time.';
-    if (order.fulfillment === 'delivery') {
-      if (!order.address.line1.trim()) e.line1 = 'Where should it go?';
-      if (!/^\d{5}$/.test(order.address.zip.trim())) e.zip = 'Five digits.';
-    }
-  }
-  if (step === 1) {
-    if (!order.contact.name.trim()) e.name = 'Who should we ask for?';
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(order.contact.email.trim()))
-      e.email = 'Check that email address.';
-    if (order.contact.phone.replace(/\D/g, '').length < 10) e.phone = 'Ten digits, please.';
-  }
+  if (!order.date) e.date = 'Choose a date.';
+  if (!order.time) e.time = 'Choose a window.';
+  if (order.fulfillment === 'delivery' && !order.address.line1.trim())
+    e.line1 = 'We need an address to deliver to.';
+  if (!order.contact.name.trim()) e.name = 'Who should we ask for?';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(order.contact.email.trim()))
+    e.email = 'Check that email address.';
+  if (order.contact.phone.replace(/\D/g, '').length < 10) e.phone = 'Ten digits, please.';
   return e;
 }

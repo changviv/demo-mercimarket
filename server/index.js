@@ -224,10 +224,22 @@ app.patch('/api/orders/:orderId', async (req, res) => {
   const guests = Number(req.body?.guests);
   if (!guests || guests < 1) return fail(res, 400, 'bad_guests', 'Give a headcount of 1 or more.');
 
-  const perHead = row.subtotal / row.guests;
-  const subtotal = perHead * guests;
-  const tax = row.subtotal ? subtotal * (row.tax / row.subtotal) : 0;
-  const total = subtotal + tax;
+  /* Recompute from the server's own line prices and the posted QUANTITIES.
+     Quantities are the client's to change; prices are not. A total posted by a
+     browser is a discount coupon with extra steps. */
+  const posted = Array.isArray(req.body?.lines) ? req.body.lines : null;
+  const lines = row.lines.map((l, i) => ({
+    ...l,
+    qty: posted ? Math.max(0, Math.min(50, Number(posted[i]?.qty ?? l.qty))) : l.qty,
+  }));
+
+  const subtotal = lines.reduce(
+    (n, l) => n + (l.unit === 'box' ? l.price * l.qty : l.price * guests * l.qty),
+    0
+  );
+  const rate = row.subtotal ? row.tax / row.subtotal : 0;
+  const tax = round2(subtotal * rate);
+  const total = round2(subtotal + tax);
 
   // Raising past the hold needs a fresh authorization; lowering never does.
   if (total > row.authorizedAmount && pay.stripeConfigured(row.locationId) && row.stripeIntentId) {
@@ -253,7 +265,8 @@ app.patch('/api/orders/:orderId', async (req, res) => {
 
   const next = store.update(row.id, {
     guests,
-    subtotal,
+    lines,
+    subtotal: round2(subtotal),
     tax,
     ...(total <= row.authorizedAmount ? {} : { authorizedAmount: total }),
   });
@@ -305,6 +318,10 @@ app.post('/api/orders/:orderId/capture', requireStaff, async (req, res) => {
     return fail(res, 502, 'capture_failed', e.message);
   }
 });
+
+/* Money is rounded at every boundary. Float arithmetic on prices otherwise
+   leaks values like 391.85999999999996 into a Stripe amount and a receipt. */
+const round2 = (n) => Math.round(n * 100) / 100;
 
 function requireStaff(req, res, next) {
   const expected = process.env.STAFF_API_TOKEN;

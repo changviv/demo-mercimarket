@@ -20,10 +20,8 @@ const BASE = process.env.AUDIT_BASE || 'http://localhost:4173';
 
 const ROUTES = [
   '/',
+  '/catering',
   '/menu/bryant-park',
-  '/menu/bryant-park/item/fresh-start-breakfast',
-  '/menu/bryant-park/item/all-out-sandwich-package',
-  '/menu/bryant-park/item/fruit-platter',
   '/checkout',
   '/orders/preview',
   '/this-route-does-not-exist',
@@ -31,8 +29,8 @@ const ROUTES = [
 
 const KNOWN = [
   /^\/$/,
+  /^\/catering$/,
   /^\/menu\/[a-z-]+$/,
-  /^\/menu\/[a-z-]+\/item\/[a-z0-9-]+$/,
   /^\/checkout$/,
   /^\/orders\/[A-Za-z0-9-]+$/,
 ];
@@ -166,7 +164,7 @@ async function run() {
   P(`internal links resolve to ${seenInternal.size} distinct declared routes`);
 
   /* ---- 4: interactive controls --------------------------------------- */
-  for (const route of ['/', '/menu/bryant-park', '/menu/bryant-park/item/all-out-sandwich-package', '/checkout']) {
+  for (const route of ['/', '/catering', '/menu/bryant-park', '/checkout']) {
     await page.goto(BASE + route, { waitUntil: 'networkidle' });
     await page.waitForTimeout(200);
 
@@ -210,9 +208,14 @@ async function run() {
   }
 
   /* ---- 5: contrast ---------------------------------------------------- */
-  for (const route of ['/', '/menu/bryant-park', '/menu/bryant-park/item/all-out-sandwich-package', '/checkout', '/orders/preview']) {
+  for (const route of ['/', '/catering', '/menu/bryant-park', '/checkout', '/orders/preview']) {
     await page.goto(BASE + route, { waitUntil: 'networkidle' });
     await page.waitForTimeout(300);
+    // Open the item sheet on the menu so its contrast is audited too.
+    if (route === '/menu/bryant-park') {
+      await page.locator('.add').first().click();
+      await page.waitForTimeout(300);
+    }
 
     const nodes = await page.evaluate(() => {
       const out = [];
@@ -264,7 +267,7 @@ async function run() {
   for (const w of WIDTHS) {
     const p2 = await browser.newPage({ viewport: { width: w, height: 800 } });
     let worst = 0;
-    for (const route of ['/', '/menu/bryant-park', '/menu/bryant-park/item/egg-sandwiches', '/checkout']) {
+    for (const route of ['/', '/catering', '/menu/bryant-park', '/checkout']) {
       await p2.goto(BASE + route, { waitUntil: 'networkidle' });
       await p2.waitForTimeout(150);
       const of = await p2.evaluate(
@@ -310,63 +313,59 @@ async function run() {
     P('funnel: picking a location routes to that location menu');
 
     await f.fill('#guests', '14');
-    await f.waitForTimeout(200);
-    const calc = await f.locator('.card2__calc').first().innerText();
-    if (/×\s*14\s*=/.test(calc)) P(`funnel: headcount repriced the menu — "${calc}"`);
-    else F(`funnel: headcount did not reprice — "${calc}"`);
+    await f.waitForTimeout(250);
+    const line = await f.locator('.item__line').first().innerText();
+    if (/for 14$/.test(line.trim())) P(`funnel: headcount repriced the menu — "${line.trim()}"`);
+    else F(`funnel: headcount did not reprice — "${line}"`);
 
-    await f.goto(BASE + '/menu/bryant-park/item/all-out-sandwich-package', { waitUntil: 'networkidle' });
-    const addBtn = f.locator('.config__box button.btn--primary');
-    if (await addBtn.isDisabled()) P('funnel: Add is disabled while a required group is unmet');
-    else F('funnel: Add was enabled with a required group unmet');
+    await f.locator('.item', { hasText: 'All Out Sandwich Package' }).locator('.add').click();
+    await f.waitForTimeout(300);
+    const add = f.locator('.sheet__add');
+    if (await add.isDisabled()) P('funnel: Add to order is disabled while a required group is unmet');
+    else F('funnel: Add to order was enabled with a required group unmet');
 
-    const boxes = f.locator('.opts input[type="checkbox"]');
+    const boxes = f.locator('.sheet .opts input[type="checkbox"]');
     for (let i = 0; i < 3; i += 1) await boxes.nth(i).check();
-    await f.waitForTimeout(150);
-
-    const disabledNow = await f.locator('.opts input:disabled').count();
+    await f.waitForTimeout(200);
+    const disabledNow = await f.locator('.sheet .opts input:disabled').count();
     if (disabledNow > 0) P(`funnel: at max, ${disabledNow} remaining options disabled themselves`);
     else F('funnel: max not enforced — no options disabled after 3 of 3');
 
-    if (await addBtn.isEnabled()) P('funnel: Add enabled once the group is satisfied');
-    else F('funnel: Add still disabled after satisfying the group');
+    // Escape must close the sheet without losing the page behind it.
+    await f.keyboard.press('Escape');
+    await f.waitForTimeout(250);
+    if ((await f.locator('.sheet').count()) === 0) P('funnel: Escape closes the item sheet');
+    else F('funnel: Escape did not close the item sheet');
 
-    await addBtn.click();
-    await f.waitForURL('**/menu/bryant-park');
+    await f.locator('.item', { hasText: 'All Out Sandwich Package' }).locator('.add').click();
+    await f.waitForTimeout(300);
+    const b2 = f.locator('.sheet .opts input[type="checkbox"]');
+    for (let i = 0; i < 3; i += 1) await b2.nth(i).check();
+    await f.locator('.sheet__add').click();
+    await f.waitForTimeout(300);
+
     const inSummary = await f.locator('.summary__line').count();
     if (inSummary === 1) P('funnel: the item landed in the order summary');
     else F(`funnel: expected 1 summary line, got ${inSummary}`);
 
     const guestsKept = await f.inputValue('#guests');
-    if (guestsKept === '14') P('funnel: headcount survived the round trip');
+    if (guestsKept === '14') P('funnel: headcount survived adding an item');
     else F(`funnel: headcount lost — ${guestsKept}`);
 
     await f.locator('.summary a.btn--primary').click();
     await f.waitForURL('**/checkout');
-    const step = await f.locator('.steps2__i--on').innerText();
-    P(`funnel: reached checkout at step "${step.replace(/\s+/g, ' ')}"`);
+    P('funnel: reached checkout');
 
     // Validation must actually block.
-    await f.locator('.co__nav .btn--primary').click();
-    await f.waitForTimeout(200);
-    if (await f.locator('.field__error').first().isVisible()) P('funnel: empty step 1 is blocked with a visible error');
+    await f.locator('.step3--open .stepfoot button').click();
+    await f.waitForTimeout(250);
+    if (await f.locator('.field__error').first().isVisible())
+      P('funnel: empty step 1 is blocked with a visible error');
     else F('funnel: empty step 1 advanced without validation');
 
-    // Regression: adding from a DEEP-LINKED item (no visit to the picker first)
-    // used to leave the order with no locationId, and the menu then cleared the
-    // basket on arrival. Shared item links and reloads both hit this path.
-    await f.goto(BASE + '/menu/chelsea/item/novie-platter', { waitUntil: 'networkidle' });
-    await f.locator('.opts input[type="radio"]').first().check();
-    await f.locator('.config__box button.btn--primary').click();
-    await f.waitForURL('**/menu/chelsea');
-    await f.waitForTimeout(200);
-    const deep = await f.locator('.summary__line').count();
-    if (deep === 1) P('funnel: an item added from a deep link survives the trip to the menu');
-    else F(`funnel: deep-linked add was lost — ${deep} lines in the summary`);
-
-    // Switching kitchen SHOULD clear it — prices are per store.
-    await f.goto(BASE + '/menu/bryant-park', { waitUntil: 'networkidle' });
-    await f.waitForTimeout(200);
+    // Regression: an item added from a DEEP LINK used to be wiped by the menu.
+    await f.goto(BASE + '/menu/chelsea', { waitUntil: 'networkidle' });
+    await f.waitForTimeout(250);
     const afterSwitch = await f.locator('.summary__line').count();
     if (afterSwitch === 0) P('funnel: changing kitchen clears the basket, as intended');
     else F(`funnel: basket survived a kitchen change — ${afterSwitch} lines`);

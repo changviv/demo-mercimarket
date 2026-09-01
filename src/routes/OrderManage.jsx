@@ -2,31 +2,28 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getOrder, updateOrder, cancelOrder } from '../lib/api.js';
 import { money, dateLong, plural } from '../lib/format.js';
-import ActionBar from '../components/ActionBar.jsx';
+import { MINIMUM_GUESTS, TAX_RATE } from '../data/site.js';
 
-/* Section 6 — order management.
+/* Prototype section 6 — "Change it, and see the cost".
 
-   The point of this screen is that changing a catering order has a payment
-   consequence, and the customer should see it BEFORE they commit, not in an
-   email afterwards.
+   Every edit states its payment effect BEFORE you commit to it. That is the
+   whole screen. A Stripe authorization can be captured once, for up to the
+   amount authorized, so the three outcomes are genuinely different:
 
-   Three states, driven by the numbers:
-     go    lowering the count — capture less than the authorization, always fine
-     ask   raising within what the existing authorization covers
-     stop  raising past the authorization — needs a fresh one, and the original
-           hold is released only after the new one succeeds
+     under the hold   capture less — nothing to re-authorize
+     over the hold    a fresh authorization, old one released after it clears
+     empty / under 8  not a change at all; it is a cancellation or a blocker
 
-   A Stripe authorization can be captured once, for up to the authorized amount
-   (or a little over where overcapture is available). Every rule on this screen
-   comes from that constraint. */
+   Showing that at the moment of the edit is the difference between a customer
+   who understands their bill and one who disputes it. */
 
 export default function OrderManage() {
   const { orderId } = useParams();
   const [order, setOrder] = useState(null);
   const [error, setError] = useState(null);
-  const [guests, setGuests] = useState(null);
+  const [draft, setDraft] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(null);
+  const [toast, setToast] = useState(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
   useEffect(() => {
@@ -35,7 +32,7 @@ export default function OrderManage() {
       .then((o) => {
         if (!live) return;
         setOrder(o);
-        setGuests(o.guests);
+        setDraft({ guests: o.guests, lines: o.lines.map((l) => ({ ...l })) });
       })
       .catch((e) => live && setError(e.message));
     return () => {
@@ -43,10 +40,13 @@ export default function OrderManage() {
     };
   }, [orderId]);
 
-  const change = useMemo(() => {
-    if (!order || guests == null) return null;
-    return assess(order, guests);
-  }, [order, guests]);
+  useEffect(() => {
+    if (!toast) return undefined;
+    const t = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const view = useMemo(() => (order && draft ? assess(order, draft) : null), [order, draft]);
 
   if (error) {
     return (
@@ -62,7 +62,7 @@ export default function OrderManage() {
     );
   }
 
-  if (!order) {
+  if (!order || !draft || !view) {
     return (
       <div className="shell section">
         <p className="note" role="status">
@@ -72,15 +72,18 @@ export default function OrderManage() {
     );
   }
 
+  const locked = order.status === 'cancelled' || order.changeLocked;
+
   async function save() {
     setBusy(true);
     try {
-      const updated = await updateOrder(orderId, { guests });
+      const updated = await updateOrder(orderId, { guests: draft.guests, lines: draft.lines });
       setOrder(updated);
-      setDone(
-        change.kind === 'stop'
-          ? 'Updated. A new authorization was requested for the higher amount; the original hold is released once it clears.'
-          : 'Updated. Your kitchen has the new count.'
+      setDraft({ guests: updated.guests, lines: updated.lines.map((l) => ({ ...l })) });
+      setToast(
+        view.kind === 'warn'
+          ? 'Saved. A new hold was placed for the higher amount; the old one is released once it clears.'
+          : 'Saved. Your kitchen has the change.'
       );
     } catch (e) {
       setError(e.message);
@@ -93,7 +96,7 @@ export default function OrderManage() {
     try {
       await cancelOrder(orderId, 'customer_request');
       setOrder({ ...order, status: 'cancelled' });
-      setDone('Cancelled. The authorization on your card is released — no charge was taken.');
+      setToast('Cancelled. The hold on your card is released — no charge was taken.');
     } catch (e) {
       setError(e.message);
     }
@@ -101,133 +104,156 @@ export default function OrderManage() {
     setConfirmCancel(false);
   }
 
-  const locked = order.status === 'cancelled' || order.changeLocked;
+  const setLineQty = (i, q) =>
+    setDraft((d) => ({
+      ...d,
+      lines: d.lines.map((l, k) => (k === i ? { ...l, qty: Math.max(0, q) } : l)),
+    }));
 
   return (
     <div className="shell om">
       <div className="om__main">
         <header className="om__head">
-          <p className="eyebrow">Order {order.reference}</p>
-          <h1>
-            {plural(order.guests, 'person', 'people')} at {order.locationName}
-          </h1>
-          <p className="lede">
-            {dateLong(order.date)} at {order.time} ·{' '}
-            {order.fulfillment === 'pickup' ? 'Pickup' : 'Delivery'}
+          <p className="om__who">
+            {order.contact?.name || 'Your order'} · {order.locationName}
           </p>
-          <span className={`pill ${order.status === 'cancelled' ? 'pill--shut' : 'pill--open'}`}>
-            {statusLabel(order.status)}
-          </span>
+          <p className="eyebrow">Order {order.reference}</p>
+          <h1>{order.title || `${plural(order.guests, 'guest')} at ${order.locationName}`}</h1>
+          <p className="lede">
+            {order.fulfillment === 'delivery' ? 'Delivering' : 'Ready for pickup'}{' '}
+            {dateLong(order.date)}, {order.time}
+            {order.address?.line1 ? ` to ${order.address.line1}` : ''}. You can still change
+            it — here is exactly what each change does to your payment.
+          </p>
         </header>
 
-        {done && (
+        {toast && (
           <p className="note note--go" role="status">
-            <span>{done}</span>
+            <span>{toast}</span>
           </p>
         )}
 
-        <section className="card card--pad om__block" aria-labelledby="om-items">
-          <h2 id="om-items">What is on it</h2>
-          <ul className="summary__list">
-            {order.lines.map((l) => (
-              <li key={l.id} className="summary__line">
-                <span className="summary__name">
-                  {l.name}
-                  <span className="summary__qty">{l.selections?.join(', ') || '—'}</span>
-                </span>
-                <span className="summary__amt money">{money(l.total)}</span>
+        {/* ---- Where it is -------------------------------------------------- */}
+        <section className="card card--pad om__block" aria-labelledby="om-where">
+          <h2 id="om-where">Where it is</h2>
+          <p className="om__sub">
+            {order.locationName} has the order. Nothing has been cooked yet.
+          </p>
+
+          <ol className="track">
+            {(
+              order.track || [
+                { t: 'Order placed', d: 'card authorized, not charged', state: 'done' },
+                {
+                  t: 'Confirmed by the kitchen',
+                  d: `sent to ${order.locationName}'s Toast`,
+                  state: 'done',
+                },
+                {
+                  t: 'Changes still open',
+                  d: `Until ${order.changeCutoffLabel}`,
+                  state: 'now',
+                },
+                { t: 'In the kitchen', d: 'the morning of', state: 'next' },
+                {
+                  t: order.fulfillment === 'delivery' ? 'Out for delivery' : 'Ready for pickup',
+                  d: 'card charged as it leaves',
+                  state: 'next',
+                },
+              ]
+            ).map((s) => (
+              <li key={s.t} className={`track__i track__i--${s.state}`}>
+                <span className="track__dot" aria-hidden="true" />
+                <span className="track__t">{s.t}</span>
+                <span className="track__d">{s.d}</span>
               </li>
             ))}
-          </ul>
-          <dl className="tot">
-            <div className="tot__row">
-              <dt>Subtotal</dt>
-              <dd className="money">{money(order.subtotal)}</dd>
-            </div>
-            <div className="tot__row">
-              <dt>Tax</dt>
-              <dd className="money">{money(order.tax)}</dd>
-            </div>
-            <div className="tot__row tot__row--strong">
-              <dt>Authorized</dt>
-              <dd className="money">{money(order.authorizedAmount)}</dd>
-            </div>
-          </dl>
+          </ol>
         </section>
 
+        {/* ---- Change this order --------------------------------------------- */}
         {!locked && (
           <section className="card card--pad om__block" aria-labelledby="om-change">
-            <h2 id="om-change">Change the headcount</h2>
-            <p>
-              Changes are open until {order.changeCutoffLabel}. Adjust the number and the
-              payment consequence appears before you commit to it.
+            <h2 id="om-change">Change this order</h2>
+            <p className="om__sub">
+              Adjust anything below. The payment consequence updates as you go — no
+              surprises at the end.
             </p>
 
-            <div className="guests__control om__guests">
-              <button
-                type="button"
-                className="guests__step"
-                onClick={() => setGuests((g) => Math.max(1, g - 1))}
-                disabled={guests <= 1}
-                aria-label="One fewer person"
-              >
-                −
-              </button>
-              <input
-                className="guests__input"
-                type="number"
-                inputMode="numeric"
-                min="1"
-                max="500"
-                value={guests}
-                onChange={(e) => setGuests(Math.max(1, Math.min(500, Number(e.target.value) || 1)))}
-                aria-label="Headcount"
-              />
-              <button
-                type="button"
-                className="guests__step"
-                onClick={() => setGuests((g) => Math.min(500, g + 1))}
-                disabled={guests >= 500}
-                aria-label="One more person"
-              >
-                +
-              </button>
+            <div className="chg">
+              <div className="chg__row chg__row--guests">
+                <span className="chg__name">
+                  Guests
+                  <span className="chg__sub">Every per-person item recalculates</span>
+                </span>
+                <Stepper
+                  value={draft.guests}
+                  min={1}
+                  max={300}
+                  label="Guests"
+                  onChange={(g) => setDraft((d) => ({ ...d, guests: g }))}
+                />
+                <span />
+              </div>
+
+              {draft.lines.map((l, i) => (
+                <div key={l.id || l.name} className="chg__row">
+                  <span className="chg__name">
+                    {l.name}
+                    <span className="chg__sub">
+                      {[l.selections?.join?.(', '), unitLabel(l)].filter(Boolean).join(' · ')}
+                    </span>
+                  </span>
+                  <Stepper
+                    value={l.qty}
+                    min={0}
+                    max={50}
+                    label={l.name}
+                    onChange={(q) => setLineQty(i, q)}
+                  />
+                  <span className="chg__amt money">{money(lineOf(l, draft.guests))}</span>
+                </div>
+              ))}
             </div>
 
-            {change && change.kind !== 'none' && (
-              <div className={`note note--${change.kind === 'go' ? 'go' : change.kind === 'ask' ? 'ask' : 'stop'}`} role="status">
-                <span>
-                  <strong>{change.title}</strong> {change.body}
-                </span>
-              </div>
-            )}
+            <div className={`consq consq--${view.kind}`} role="status">
+              <strong>{view.title}</strong>
+              <span>{view.body}</span>
+            </div>
 
             <div className="row">
               <button
                 type="button"
                 className="btn btn--primary"
                 onClick={save}
-                disabled={busy || !change || change.kind === 'none'}
+                disabled={busy || !view.changed || view.blocked}
               >
-                {busy ? 'Saving…' : 'Save the new count'}
+                {busy ? 'Saving…' : 'Save changes'}
               </button>
-              {change && change.kind !== 'none' && (
-                <button type="button" className="btn btn--quiet" onClick={() => setGuests(order.guests)}>
-                  Reset
-                </button>
-              )}
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() =>
+                  setDraft({ guests: order.guests, lines: order.lines.map((l) => ({ ...l })) })
+                }
+                disabled={!view.changed}
+              >
+                Undo
+              </button>
             </div>
           </section>
         )}
 
+        {/* ---- Order this again ---------------------------------------------- */}
         <section className="card card--pad om__block" aria-labelledby="om-again">
           <h2 id="om-again">Order this again</h2>
-          <p>
-            Same items, same choices, new date. The headcount comes across and you change
-            it before you confirm.
+          <p className="om__sub">
+            Your {dayName(order.date)} order, same items, same store. Pick a new date and it
+            is done — the saved {order.card?.brand || 'Visa'} ending{' '}
+            {order.card?.last4 || '4242'} is already on file at {order.locationName}.
           </p>
           <Link to={`/menu/${order.locationId}`} className="btn btn--ghost">
-            Reorder from {order.locationName}
+            Reorder for next week
           </Link>
         </section>
 
@@ -259,82 +285,159 @@ export default function OrderManage() {
         )}
       </div>
 
+      {/* ---- Payment panel ---------------------------------------------------- */}
       <aside className="om__side">
         <div className="card card--pad">
-          <h2 className="summary__h">Payment</h2>
+          <p className="om__paystate">{view.changed ? 'Hold needs updating' : 'Hold placed'}</p>
+          <p className="om__payamt money">{money(order.authorizedAmount)}</p>
+          <p className="meta">
+            {view.changed
+              ? `Currently holding ${money(order.authorizedAmount)} on ${order.card?.brand || 'Visa'} ${order.card?.last4 || '4242'}. Save your changes and we will re-authorize for ${money(view.total)}.`
+              : `Authorized on ${order.card?.brand || 'Visa'} ${order.card?.last4 || '4242'}. Released in full if you cancel.`}
+          </p>
+
           <dl className="tot">
             <div className="tot__row">
-              <dt>Card</dt>
-              <dd>
-                {order.card?.brand} ···· {order.card?.last4}
+              <dt>Subtotal</dt>
+              <dd className="money">{money(view.sub)}</dd>
+            </div>
+            {order.fulfillment === 'delivery' && (
+              <div className="tot__row tot__row--pending">
+                <dt>Delivery fee</dt>
+                <dd>To be confirmed</dd>
+              </div>
+            )}
+            <div className="tot__row">
+              <dt>Sales tax ({(TAX_RATE * 100).toFixed(3)}%)</dt>
+              <dd className="money">{money(view.tax)}</dd>
+            </div>
+            <div className="tot__row tot__row--strong">
+              <dt>{view.changed ? 'New total' : 'Order total'}</dt>
+              <dd className="money">
+                {view.changed && (
+                  <span className="was">{money(order.authorizedAmount)}</span>
+                )}
+                {money(view.total)}
               </dd>
             </div>
-            <div className="tot__row">
-              <dt>Status</dt>
-              <dd>{order.paymentStatus}</dd>
-            </div>
-            <div className="tot__row">
-              <dt>Charged on</dt>
-              <dd>{dateLong(order.date)}</dd>
-            </div>
           </dl>
+
           <p className="meta">
-            You are charged what the kitchen actually hands over, up to the authorized
-            amount. A lower final count means a lower charge, with no action from you.
+            {order.fulfillment === 'delivery' && 'Delivery fee still to be confirmed. '}
+            Tax comes from {order.locationName}&rsquo;s Toast configuration.
           </p>
         </div>
       </aside>
-
-      <ActionBar
-        summary={`Order ${order.reference}`}
-        detail={`${money(order.authorizedAmount)} · ${statusLabel(order.status)}`}
-        actionLabel="Save changes"
-        onAction={save}
-        disabled={busy || locked || !change || change.kind === 'none'}
-      />
     </div>
   );
 }
 
-function statusLabel(s) {
+/* -------------------------------------------------------------------------- */
+
+function Stepper({ value, min, max, label, onChange }) {
   return (
-    {
-      authorized: 'Card held',
-      saved_card: 'Card saved',
-      captured: 'Paid',
-      cancelled: 'Cancelled',
-      in_kitchen: 'In the kitchen',
-    }[s] || s
+    <div className="guests__control">
+      <button
+        type="button"
+        className="guests__step"
+        onClick={() => onChange(Math.max(min, value - 1))}
+        disabled={value <= min}
+        aria-label={`Fewer ${label}`}
+      >
+        −
+      </button>
+      <input
+        className="guests__input"
+        type="number"
+        inputMode="numeric"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Math.max(min, Math.min(max, Number(e.target.value) || min)))}
+        aria-label={label}
+      />
+      <button
+        type="button"
+        className="guests__step"
+        onClick={() => onChange(Math.min(max, value + 1))}
+        disabled={value >= max}
+        aria-label={`More ${label}`}
+      >
+        +
+      </button>
+    </div>
   );
 }
 
-/** What does changing to `guests` do to the money? */
-function assess(order, guests) {
-  if (guests === order.guests) return { kind: 'none' };
+const unitLabel = (l) =>
+  l.unit === 'box' ? `${money(l.price)} per box` : `${money(l.price)} per person`;
 
-  const perHead = order.subtotal / order.guests;
-  const newSubtotal = perHead * guests;
-  const newTotal = newSubtotal * (1 + order.tax / order.subtotal);
+const lineOf = (l, guests) => (l.unit === 'box' ? l.price * l.qty : l.price * guests * l.qty);
 
-  if (guests < order.guests) {
+function dayName(iso) {
+  if (!iso) return 'weekly';
+  return new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long' });
+}
+
+/** What does this edit do to the money? */
+function assess(order, draft) {
+  const sub = draft.lines.reduce((n, l) => n + lineOf(l, draft.guests), 0);
+  const tax = sub * TAX_RATE;
+  const total = sub + tax;
+  const auth = order.authorizedAmount;
+
+  const changed =
+    draft.guests !== order.guests ||
+    draft.lines.some((l, i) => l.qty !== order.lines[i]?.qty);
+  const empty = draft.lines.every((l) => l.qty === 0);
+
+  const base = { sub, tax, total, changed };
+
+  if (!changed) {
     return {
-      kind: 'go',
-      title: `Down to ${plural(guests, 'person', 'people')}.`,
-      body: `You will be charged ${money(newTotal)} instead of ${money(order.authorizedAmount)}. Nothing to re-authorize — we simply capture less.`,
+      ...base,
+      kind: 'ok',
+      blocked: false,
+      title: 'Nothing changed yet',
+      body: `Your card is holding ${money(auth)}. Change anything above and I will tell you what it does to that hold.`,
     };
   }
 
-  if (newTotal <= order.authorizedAmount) {
+  if (empty) {
     return {
-      kind: 'ask',
-      title: `Up to ${plural(guests, 'person', 'people')}.`,
-      body: `${money(newTotal)} still fits inside the ${money(order.authorizedAmount)} already held, so your existing authorization covers it.`,
+      ...base,
+      kind: 'stop',
+      blocked: true,
+      title: 'That empties the order',
+      body: 'Remove everything and this becomes a cancellation. Use Cancel this order below instead, so the hold is released properly.',
+    };
+  }
+
+  if (draft.guests < MINIMUM_GUESTS) {
+    return {
+      ...base,
+      kind: 'stop',
+      blocked: true,
+      title: `${draft.guests} guests is under the minimum`,
+      body: `Catering platters need at least ${MINIMUM_GUESTS} people. Raise the guest count or cancel and order from the regular menu instead.`,
+    };
+  }
+
+  if (total <= auth) {
+    return {
+      ...base,
+      kind: 'ok',
+      blocked: false,
+      title: 'Covered by the hold already on your card',
+      body: `Your new total is ${money(total)}, which is ${money(auth - total)} less than we are holding. We will simply charge the lower amount when the order goes out. No new card step.`,
     };
   }
 
   return {
-    kind: 'stop',
-    title: `That is more than the hold covers.`,
-    body: `${money(newTotal)} is above the ${money(order.authorizedAmount)} authorized. Saving this requests a new authorization on the same card; the original is released once the new one clears. If the card declines, the order stays at ${plural(order.guests, 'person', 'people')}.`,
+    ...base,
+    kind: 'warn',
+    blocked: false,
+    title: 'This is more than we are holding',
+    body: `Your new total is ${money(total)} — ${money(total - auth)} above the ${money(auth)} hold. Saving this places a fresh hold for the new amount and releases the old one. Your card is on file, so it is one tap.`,
   };
 }
