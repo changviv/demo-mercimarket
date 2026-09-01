@@ -1,0 +1,448 @@
+/* Reset, typography scale, and shared primitives. Tokens only — no literals. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--text);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+/* ---- Headings ------------------------------------------------------------ */
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--lh-snug);
+  margin: 0 0 var(--s-3);
+  font-variation-settings: "SOFT" 24, "WONK" 1;
+}
+
+h1 {
+  font-size: var(--fs-h1);
+  line-height: var(--lh-tight);
+}
+
+/* The one place the display size is warranted: the top of the catering page. */
+.hero h1 {
+  font-size: var(--fs-display);
+}
+h2 {
+  font-size: var(--fs-h2);
+}
+h3 {
+  font-size: var(--fs-h3);
+}
+
+p {
+  margin: 0 0 var(--s-4);
+  max-width: 68ch;
+}
+
+a {
+  color: var(--tomato-ink);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--tomato-deep);
+}
+
+ul,
+ol {
+  margin: 0 0 var(--s-4);
+  padding-left: var(--s-5);
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: var(--s-8) 0;
+}
+
+/* ---- Focus --------------------------------------------------------------- */
+
+:focus-visible {
+  outline: 2px solid var(--tomato-ink);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--s-4);
+  top: calc(var(--s-2) * -12);
+  z-index: 200;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  padding: var(--s-3) var(--s-5);
+  font-weight: 700;
+  text-decoration: none;
+  transition: top var(--dur) var(--ease);
+}
+
+.skip-link:focus {
+  top: var(--s-2);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Layout shell -------------------------------------------------------- */
+/* NOTE: padding-left/right longhands, never the `padding` shorthand — a
+   shorthand here silently zeroes the gutter when a section sets vertical
+   padding on the same element. That bug shipped twice in the prototype. */
+
+.shell {
+  width: 100%;
+  max-width: var(--shell);
+  margin-inline: auto;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+
+.shell--narrow {
+  max-width: var(--shell-narrow);
+}
+
+.section {
+  padding-top: var(--s-16);
+  padding-bottom: var(--s-16);
+}
+
+.section--tight {
+  padding-top: var(--s-10);
+  padding-bottom: var(--s-10);
+}
+
+.section--band {
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.stack > * + * {
+  margin-top: var(--s-4);
+}
+
+/* ---- Eyebrow ------------------------------------------------------------- */
+
+.eyebrow {
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--tomato-ink);
+  margin: 0 0 var(--s-3);
+}
+
+.lede {
+  font-size: var(--fs-h3);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.meta {
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+}
+
+/* ---- Buttons ------------------------------------------------------------- */
+
+.btn {
+  --btn-bg: var(--surface);
+  --btn-fg: var(--ink);
+  --btn-line: var(--line-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: var(--tap);
+  padding-left: var(--s-5);
+  padding-right: var(--s-5);
+  border: 1px solid var(--btn-line);
+  border-radius: var(--r-pill);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-family: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease), background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn--primary {
+  --btn-bg: var(--tomato);
+  --btn-fg: var(--on-tomato);
+  --btn-line: var(--tomato);
+  box-shadow: var(--lift-sm);
+}
+
+.btn--primary:hover:not(:disabled) {
+  --btn-bg: var(--tomato-deep);
+  --btn-line: var(--tomato-deep);
+}
+
+.btn--ghost {
+  --btn-bg: transparent;
+  --btn-line: var(--line-strong);
+}
+
+.btn--quiet {
+  --btn-bg: transparent;
+  --btn-line: transparent;
+  --btn-fg: var(--tomato-ink);
+  padding-left: var(--s-2);
+  padding-right: var(--s-2);
+}
+
+.btn--lg {
+  min-height: 52px;
+  font-size: var(--fs-body);
+  padding-left: var(--s-8);
+  padding-right: var(--s-8);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* ---- Cards --------------------------------------------------------------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--lift-sm);
+}
+
+.card--pad {
+  padding: var(--s-5);
+}
+
+/* ---- Pills / badges ------------------------------------------------------ */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  background: var(--sunken);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.pill--pop {
+  background: var(--tomato-tint);
+  color: var(--tomato-ink);
+  border-color: var(--tomato-tint);
+}
+
+.pill--veg {
+  background: var(--basil-tint);
+  color: var(--basil);
+  border-color: var(--basil-tint);
+}
+
+.pill--open {
+  background: var(--basil-tint);
+  color: var(--basil);
+  border-color: var(--basil-tint);
+}
+
+.pill--shut {
+  background: var(--sunken);
+  color: var(--ink-3);
+}
+
+/* ---- Notes / callouts ---------------------------------------------------- */
+
+.note {
+  display: flex;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--sunken);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+.note p:last-child {
+  margin-bottom: 0;
+}
+
+.note--ask {
+  background: var(--honey-tint);
+  border-color: var(--honey);
+  color: var(--honey-ink);
+}
+
+.note--go {
+  background: var(--basil-tint);
+  border-color: var(--basil);
+  color: var(--basil);
+}
+
+.note--stop {
+  background: var(--tomato-tint);
+  border-color: var(--tomato);
+  color: var(--tomato-ink);
+}
+
+/* ---- Form controls ------------------------------------------------------- */
+
+.field {
+  display: block;
+  margin-bottom: var(--s-4);
+}
+
+.field__label {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  margin-bottom: var(--s-2);
+  color: var(--ink);
+}
+
+.field__hint {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  margin-top: var(--s-2);
+}
+
+.field__error {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--tomato-ink);
+  margin-top: var(--s-2);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-height: var(--tap);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--text);
+  font-size: var(--fs-body);
+  line-height: 1.4;
+}
+
+.textarea {
+  min-height: calc(var(--tap) * 2.2);
+  resize: vertical;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--tomato);
+  box-shadow: var(--ring);
+}
+
+.input[aria-invalid="true"],
+.select[aria-invalid="true"] {
+  border-color: var(--tomato-ink);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--ink-3);
+}
+
+/* ---- Utility ------------------------------------------------------------- */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.row--between {
+  justify-content: space-between;
+}
+
+.grid {
+  display: grid;
+  gap: var(--s-5);
+}
+
+/* Grid children default to min-width:auto, which lets a wide child force the
+   whole track wider than the viewport. This is the fix for that. */
+.grid > *,
+.layout > * {
+  min-width: 0;
+}
+
+.money {
+  font-variant-numeric: tabular-nums;
+}

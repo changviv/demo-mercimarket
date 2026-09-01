@@ -1,0 +1,106 @@
+/* ============================================================================
+   Merci Market — design tokens.
+   This is the ONLY file in src/ permitted to contain a raw colour literal.
+   Everything else references var(--*). `npm run audit:tokens` enforces it.
+
+   Palette is the approved Variation B (cream). The dark Variation A is not
+   shipped in the app: the client picked cream, and carrying a second theme
+   doubles the contrast surface for no product benefit.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- Ground ------------------------------------------------------------ */
+  --cream: #f4e5d0;         /* page ground */
+  --surface: #ffffff;       /* cards, sheets, inputs */
+  --sunken: #faf3e6;        /* inset wells, table stripes, disabled fields */
+  --mast: rgba(244, 229, 208, 0.96); /* sticky header, over-content bars */
+
+  /* ---- Ink --------------------------------------------------------------- */
+  --ink: #2e2620;           /* headings + body            13.0:1 on cream */
+  --ink-2: #6a5f55;         /* secondary copy              5.6:1 on cream */
+  --ink-3: #6e6459;         /* meta, captions              5.2:1 on cream */
+
+  /* ---- Lines ------------------------------------------------------------- */
+  --line: #e3d2b6;
+  --line-strong: #cdb894;
+
+  /* ---- Action: tomato ---------------------------------------------------- */
+  --tomato: #cc3d1f;        /* fills only — never text on cream */
+  --tomato-ink: #ae3417;    /* tomato AS TEXT              5.1:1 on cream */
+  --tomato-deep: #b83619;   /* hover/active fill */
+  --tomato-tint: #fbe7df;
+  --on-tomato: #ffffff;     /* text on a tomato fill       5.4:1 */
+
+  /* ---- Status: basil (go) ------------------------------------------------ */
+  --basil: #2a7048;         /* also safe as text           5.9:1 on cream */
+  --basil-tint: #e4efe6;
+
+  /* ---- Status: honey (attention) ----------------------------------------- */
+  --honey: #f5b93e;         /* fill/rule only — fails as text on cream */
+  --honey-ink: #7a5304;     /* honey AS TEXT               6.2:1 on cream */
+  --honey-tint: #fdf0d8;
+
+  /* ---- Elevation --------------------------------------------------------- */
+  --lift: 0 1px 2px rgba(60, 44, 24, 0.06), 0 12px 32px -18px rgba(60, 44, 24, 0.34);
+  --lift-sm: 0 1px 2px rgba(60, 44, 24, 0.08);
+  --lift-lg: 0 2px 4px rgba(60, 44, 24, 0.06), 0 24px 56px -24px rgba(60, 44, 24, 0.4);
+  --ring: 0 0 0 3px rgba(204, 61, 31, 0.32); /* focus ring, tomato at 32% */
+  --scrim: rgba(46, 38, 32, 0.45);           /* behind the mobile drawer */
+
+  /* ---- Type -------------------------------------------------------------- */
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --text: "Figtree", "Helvetica Neue", Arial, sans-serif;
+
+  --fs-display: clamp(2.25rem, 1.35rem + 3.4vw, 4rem);
+  --fs-h1: clamp(1.85rem, 1.3rem + 2.1vw, 2.9rem);
+  --fs-h2: clamp(1.4rem, 1.15rem + 1.05vw, 1.95rem);
+  --fs-h3: clamp(1.12rem, 1.03rem + 0.4vw, 1.35rem);
+  --fs-body: 1rem;          /* 16px — never smaller for running copy */
+  --fs-sm: 0.9375rem;       /* 15px */
+  --fs-xs: 0.8125rem;       /* 13px — labels and meta only, never paragraphs */
+
+  --lh-tight: 1.08;
+  --lh-snug: 1.28;
+  --lh-body: 1.6;
+
+  --tracking-tight: -0.022em;
+  --tracking-caps: 0.09em;
+
+  /* ---- Space (4px base) --------------------------------------------------- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+
+  /* ---- Radius ------------------------------------------------------------ */
+  --r-sm: 10px;
+  --r: 16px;
+  --r-lg: 24px;
+  --r-pill: 999px;
+
+  /* ---- Layout ------------------------------------------------------------ */
+  --shell: 1200px;          /* max content width */
+  --shell-narrow: 760px;    /* prose measure */
+  --gutter: var(--s-5);
+  --header-h: 68px;
+  --actionbar-h: 74px;      /* mobile bottom action bar */
+  --tap: 44px;              /* minimum interactive target */
+
+  /* ---- Motion ------------------------------------------------------------ */
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --dur: 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur: 0ms;
+  }
+}
