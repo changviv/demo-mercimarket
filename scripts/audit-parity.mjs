@@ -49,7 +49,7 @@ const EXPECT = [
     ],
     cta: ['Choose your store', 'How it works', 'Read more about us', 'Browse the full menu'],
     // Three FAQs the client still owes an answer to must be visibly flagged.
-    count: [['.pill--needs', 3]],
+    count: [['.q--tbd', 3], ['.step', 3], ['.oc', 6], ['.catpill', 8], ['.closecta', 1]],
   },
   {
     section: '2 · Home & store picker',
@@ -125,9 +125,9 @@ async function run() {
     await page.goto(BASE + spec.route, { waitUntil: 'networkidle' });
     await page.waitForTimeout(350);
 
-    // Open every FAQ so collapsed answers count as present.
-    const faqs = await page.locator('.faq__btn').count();
-    for (let i = 0; i < faqs; i += 1) await page.locator('.faq__btn').nth(i).click();
+    // Open every FAQ so collapsed answers count as present. They are native
+    // <details>, so set the attribute rather than clicking six summaries.
+    await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
     await page.waitForTimeout(200);
 
     const body = norm(await page.locator('body').innerText());

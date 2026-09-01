@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { groupOptions } from '../data/menu.js';
 import { GROUP_NOTES, groupSatisfied } from '../data/options.js';
 import { money } from '../lib/format.js';
+import Stepper from './Stepper.jsx';
 
 /* Prototype section 4 — the item configurator, as a sheet over the menu.
 
@@ -218,38 +219,13 @@ export default function ItemSheet({ item, guests, onAdd, onClose }) {
                 four separate tick boxes.
               </p>
               <div className="row">
-                <div className="guests__control">
-                  <button
-                    type="button"
-                    className="guests__step"
-                    onClick={() => setVeg((v) => Math.max(0, v - 1))}
-                    disabled={veg <= 0}
-                    aria-label="Fewer vegetarian sandwiches"
-                  >
-                    −
-                  </button>
-                  <input
-                    className="guests__input"
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    max={guests}
-                    value={veg}
-                    onChange={(e) =>
-                      setVeg(Math.max(0, Math.min(guests, Number(e.target.value) || 0)))
-                    }
-                    aria-label="Vegetarian sandwiches"
-                  />
-                  <button
-                    type="button"
-                    className="guests__step"
-                    onClick={() => setVeg((v) => Math.min(guests, v + 1))}
-                    disabled={veg >= guests}
-                    aria-label="More vegetarian sandwiches"
-                  >
-                    +
-                  </button>
-                </div>
+                <Stepper
+                  value={veg}
+                  min={0}
+                  max={guests}
+                  onChange={setVeg}
+                  label="vegetarian sandwiches"
+                />
                 <span className="meta">of {guests} guests</span>
               </div>
             </fieldset>
@@ -290,36 +266,7 @@ export default function ItemSheet({ item, guests, onAdd, onClose }) {
           </div>
 
           <div className="sheet__actions">
-            <div className="guests__control">
-              <button
-                type="button"
-                className="guests__step"
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                disabled={qty <= 1}
-                aria-label="Fewer"
-              >
-                −
-              </button>
-              <input
-                className="guests__input"
-                type="number"
-                inputMode="numeric"
-                min="1"
-                max="50"
-                value={qty}
-                onChange={(e) => setQty(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
-                aria-label="Quantity"
-              />
-              <button
-                type="button"
-                className="guests__step"
-                onClick={() => setQty((q) => Math.min(50, q + 1))}
-                disabled={qty >= 50}
-                aria-label="More"
-              >
-                +
-              </button>
-            </div>
+            <Stepper value={qty} min={1} max={50} onChange={setQty} label="quantity" />
 
             <button
               type="button"

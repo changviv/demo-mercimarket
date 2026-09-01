@@ -7,6 +7,8 @@ import { money, plural } from '../lib/format.js';
 import { MINIMUM_GUESTS, MAIN_SITE } from '../data/site.js';
 import ItemSheet from '../components/ItemSheet.jsx';
 import ActionBar from '../components/ActionBar.jsx';
+import Stepper from '../components/Stepper.jsx';
+import EmptyState from '../components/EmptyState.jsx';
 
 /* Prototype section 3 — "76 items, guest-count pricing".
 
@@ -135,38 +137,15 @@ export default function Menu() {
             <label className="guests__label" htmlFor="guests">
               Guests
             </label>
-            <div className="guests__control">
-              <button
-                type="button"
-                id="minus"
-                className="guests__step"
-                onClick={() => dispatch({ type: 'setGuests', guests: order.guests - 1 })}
-                disabled={order.guests <= 1}
-                aria-label="One fewer guest"
-              >
-                −
-              </button>
-              <input
-                id="guests"
-                className="guests__input"
-                type="number"
-                inputMode="numeric"
-                min="1"
-                max="500"
-                value={order.guests}
-                onChange={(e) => dispatch({ type: 'setGuests', guests: Number(e.target.value) })}
-              />
-              <button
-                type="button"
-                id="plus"
-                className="guests__step"
-                onClick={() => dispatch({ type: 'setGuests', guests: order.guests + 1 })}
-                disabled={order.guests >= 500}
-                aria-label="One more guest"
-              >
-                +
-              </button>
-            </div>
+            <Stepper
+              id="guests"
+              value={order.guests}
+              min={1}
+              max={500}
+              onChange={(g) => dispatch({ type: 'setGuests', guests: g })}
+              decLabel="One fewer guest"
+              incLabel="One more guest"
+            />
           </div>
 
           <div className="tools__search">
@@ -254,23 +233,27 @@ export default function Menu() {
           </p>
 
           {resultCount === 0 && (
-            <div className="empty card card--pad">
-              <h2>Nothing matches that</h2>
+            <EmptyState
+              heading="h2"
+              title="Nothing matches that"
+              action={
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={() => {
+                    setQuery('');
+                    setFilters([]);
+                  }}
+                >
+                  Show the whole menu
+                </button>
+              }
+            >
               <p>
                 Try a shorter word, or clear the filters. Every one of the 76 items is
                 still here.
               </p>
-              <button
-                type="button"
-                className="btn btn--primary"
-                onClick={() => {
-                  setQuery('');
-                  setFilters([]);
-                }}
-              >
-                Show the whole menu
-              </button>
-            </div>
+            </EmptyState>
           )}
 
           {shown.map((cat) => (

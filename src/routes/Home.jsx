@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { HERO, MODES, HERO_FACTS } from '../data/site.js';
 import { useOrder } from '../state/OrderContext.jsx';
 import StorePicker from '../components/StorePicker.jsx';
+import StatStrip from '../components/StatStrip.jsx';
+import ArtFrame, { DotBadge } from '../components/ArtFrame.jsx';
 import storefront from '/img/storefront.webp';
 
 /* Prototype section 2 — "Home & store picker", built to the approved hero
@@ -73,24 +75,15 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="hero__art">
-            <div className="hero__frame">
-              <img
-                src={storefront}
-                alt="The Merci Market storefront on a Manhattan corner, awning out, flowers on the pavement."
-                width="1200"
-                height="960"
-                fetchPriority="high"
-              />
-            </div>
-            <p className="floater">
-              <span className="floater__dot" aria-hidden="true" />
-              <span>
-                <b>{HERO.openNote.title}</b>
-                <i>{HERO.openNote.sub}</i>
-              </span>
-            </p>
-          </div>
+          <ArtFrame
+            src={storefront}
+            alt="The Merci Market storefront on a Manhattan corner, awning out, flowers on the pavement."
+            width="1200"
+            height="960"
+            ratio="5 / 4"
+            priority
+            badge={<DotBadge title={HERO.openNote.title} sub={HERO.openNote.sub} />}
+          />
         </div>
       </section>
 
@@ -104,18 +97,7 @@ export default function Home() {
       />
 
       {/* ---- Facts ------------------------------------------------------------- */}
-      <section className="facts" aria-label="Merci Market in numbers">
-        <div className="shell">
-          <ul className="facts__grid">
-            {HERO_FACTS.map((f) => (
-              <li key={f.n} className="fact">
-                <b>{f.n}</b>
-                <span>{f.t}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+      <StatStrip stats={HERO_FACTS} tone="surface" label="Merci Market in numbers" />
     </>
   );
 }

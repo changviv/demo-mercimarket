@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   CATERING,
@@ -14,142 +13,157 @@ import {
   PICK_CTA,
 } from '../data/site.js';
 import { MENU } from '../data/menu.js';
-import { useOrder } from '../state/OrderContext.jsx';
-import StorePicker from '../components/StorePicker.jsx';
+import StatStrip from '../components/StatStrip.jsx';
+import SectionHead from '../components/SectionHead.jsx';
+import ArtFrame, { DotBadge, SinceBadge } from '../components/ArtFrame.jsx';
+import Faq from '../components/Faq.jsx';
+import { Arrow } from '../components/Icons.jsx';
 import spread from '/img/spread.webp';
 import tray from '/img/tray.webp';
+import storefront from '/img/storefront.webp';
 
-/* Prototype section 1 — "The pitch, before they order".
+/* Prototype section 1 — "The pitch, before they order", built to the approved
+   catering artifact (b099617a).
 
-   Kept as its own route rather than folded into the homepage, because that is
-   how the approved prototype sequences it: the catering page answers
-   objections, then hands off to the picker. Two pages, two jobs. */
+   Layout, in the artifact's order:
+     opener        eyebrow pill · H1 with "Every Occasion" in tomato · lede ·
+                   two CTAs, beside the food photo with the minimum chip
+                   floating over its corner
+     proof strip   four figures on CREAM (the home page runs the same strip on
+                   white — that is the only difference between them)
+     how it works  three numbered cards, solid tomato numerals
+     what we cater six occasion cards, each jumping into the menu category that
+                   serves it rather than the top of a 76-item list
+     menu peek     photo beside the eight categories as counted pills
+     story         photo with an "Est. 1979" tab, beside the 1979 copy
+     FAQ           six questions; the three the client still owes go honey
+     closing CTA   a centred card — NOT the six-card picker. The picker lives on
+                   the home page; repeating it here would give one page two
+                   competing primary actions.
+
+   Every block on this page is a shared component. It was duplicated markup that
+   let the store picker rot on this route while the home copy was rebuilt. */
 
 export default function Catering() {
-  const [open, setOpen] = useState(0);
-  const { dispatch } = useOrder();
   const navigate = useNavigate();
 
-  function choose(loc) {
-    dispatch({ type: 'setLocation', id: loc.id });
-    dispatch({ type: 'setField', field: 'fulfillment', value: 'pickup' });
-    navigate(`/menu/${loc.id}`);
+  function toCategory(cat) {
+    sessionStorage.setItem('mm.jumpCat', cat);
+    navigate('/menu/bryant-park');
   }
 
   return (
     <>
       {/* ---- Opener --------------------------------------------------------- */}
-      <section className="open" aria-labelledby="cat-head">
-        <div className="shell open__grid">
-          <div>
-            <p className="eyebrow eyebrow--chip">{CATERING.eyebrow}</p>
-            <h1 id="cat-head">{CATERING.title}</h1>
-            <p className="lede">{CATERING.lede}</p>
-            <div className="row open__cta">
-              <a className="btn btn--primary btn--lg" href="#pick">
-                Choose your store
-              </a>
-              <a className="btn btn--ghost btn--lg" href="#how">
-                How it works
-              </a>
-            </div>
+      <section className="shell open" aria-labelledby="cat-head">
+        <div className="open__copy">
+          <p className="hero__eyebrow">{CATERING.eyebrow}</p>
+          <h1 id="cat-head">
+            Delicious Catering for <em>Every Occasion</em>
+          </h1>
+          <p className="lede">{CATERING.lede}</p>
+          <div className="opencta">
+            <Link className="btn btn--primary btn--lg" to="/#pick">
+              Choose your store
+            </Link>
+            <a className="btn btn--ghost btn--lg" href="#how">
+              How it works
+            </a>
           </div>
+        </div>
 
-          <figure className="open__art">
-            <img
-              src={spread}
-              alt="An overhead spread of Merci Market food: sandwiches, salads, fruit and pastries laid out on a table."
-              width="1200"
-              height="960"
-              fetchPriority="high"
-            />
-            <figcaption className="open__chip">
-              <span className="open__dot" aria-hidden="true" />
-              <span>
-                <strong>{CATERING.chip.title}</strong>
-                <span>{CATERING.chip.sub}</span>
+        <ArtFrame
+          src={spread}
+          alt="An overhead spread of Merci Market food: sandwiches, salads, fruit and pastries laid out on a table."
+          width="1200"
+          height="960"
+          ratio="5 / 4"
+          priority
+          badge={<DotBadge title={CATERING.chip.title} sub={CATERING.chip.sub} />}
+        />
+      </section>
+
+      <StatStrip stats={CATERING_FACTS} tone="cream" label="Merci Market catering in numbers" />
+
+      {/* ---- How it works ---------------------------------------------------- */}
+      <section className="shell section" id="how" aria-labelledby="how-head">
+        <SectionHead id="how-head" title="Three steps, and you are done">
+          {HOW_INTRO}
+        </SectionHead>
+
+        <ol className="steps">
+          {HOW_STEPS.map((s, i) => (
+            <li key={s.t} className="step">
+              <span className="step__n" aria-hidden="true">
+                {i + 1}
               </span>
-            </figcaption>
-          </figure>
-        </div>
+              <h3>{s.t}</h3>
+              <p>{s.d}</p>
+              <span className="tag">{s.tag}</span>
+            </li>
+          ))}
+        </ol>
       </section>
 
-      <section className="facts" aria-label="Merci Market catering in numbers">
-        <div className="shell">
-          <ul className="facts__grid">
-            {CATERING_FACTS.map((f) => (
-              <li key={f.n} className="fact">
-                <b>{f.n}</b>
-                <span>{f.t}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+      {/* ---- What we cater ---------------------------------------------------- */}
+      <section className="shell section" aria-labelledby="occ-head">
+        <SectionHead id="occ-head" title="What we cater">
+          {OCCASIONS_INTRO}
+        </SectionHead>
 
-      {/* ---- How it works --------------------------------------------------- */}
-      <section className="section section--band" id="how" aria-labelledby="how-head">
-        <div className="shell">
-          <h2 id="how-head">Three steps, and you are done</h2>
-          <p className="lede">{HOW_INTRO}</p>
-
-          <ol className="steps grid">
-            {HOW_STEPS.map((s, i) => (
-              <li key={s.t} className="step card card--pad">
-                <span className="step__n" aria-hidden="true">
-                  {i + 1}
+        <ul className="occs">
+          {OCCASIONS.map((o) => (
+            <li key={o.t}>
+              <button type="button" className="oc" onClick={() => toCategory(o.cat)}>
+                <h3>{o.t}</h3>
+                <p>{o.d}</p>
+                <span className="oc__go">
+                  {o.tag}
+                  <Arrow />
                 </span>
-                <h3 className="step__t">{s.t}</h3>
-                <p className="step__d">{s.d}</p>
-                <span className="tag">{s.tag}</span>
-              </li>
-            ))}
-          </ol>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* ---- Menu peek --------------------------------------------------------- */}
+      <section className="shell section" id="sections" aria-labelledby="sec-head">
+        <div className="peek">
+          <ArtFrame
+            src={tray}
+            alt="A catering tray of assorted Merci Market sandwiches, cut and arranged for a group."
+            width="1200"
+            height="825"
+            ratio="16 / 11"
+          />
+          <div>
+            <SectionHead id="sec-head" title="Eight sections, priced per person">
+              {SECTIONS_INTRO}
+            </SectionHead>
+            <ul className="cats">
+              {MENU.map((c) => (
+                <li key={c.id} className="catpill">
+                  {c.name} <i>{c.items.length}</i>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 
-      {/* ---- What we cater --------------------------------------------------- */}
-      <section className="section" aria-labelledby="occ-head">
-        <div className="shell">
-          <h2 id="occ-head">What we cater</h2>
-          <p className="lede">{OCCASIONS_INTRO}</p>
-
-          <ul className="occs grid">
-            {OCCASIONS.map((o) => (
-              <li key={o.t}>
-                <a className="occ" href={`#pick`} onClick={() => sessionStorage.setItem('mm.jumpCat', o.cat)}>
-                  <h3 className="occ__t">{o.t}</h3>
-                  <p className="occ__d">{o.d}</p>
-                  <span className="tag">{o.tag}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* ---- Eight sections --------------------------------------------------- */}
-      <section className="section section--band" id="sections" aria-labelledby="sec-head">
-        <div className="shell">
-          <h2 id="sec-head">Eight sections, priced per person</h2>
-          <p className="lede">{SECTIONS_INTRO}</p>
-
-          <ul className="secs">
-            {MENU.map((c) => (
-              <li key={c.id} className="sec">
-                <span className="sec__n">{c.name}</span>
-                <span className="sec__c">{c.items.length}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* ---- Story ------------------------------------------------------------ */}
-      <section className="section" id="story" aria-labelledby="story-head">
-        <div className="shell split split--flip">
-          <div className="split__copy">
-            <p className="eyebrow">{STORY.eyebrow}</p>
+      {/* ---- Story -------------------------------------------------------------- */}
+      <section className="shell section" id="story" aria-labelledby="story-head">
+        <div className="story">
+          <ArtFrame
+            src={storefront}
+            alt="The Merci Market storefront on a Manhattan corner, awning out, flowers on the pavement."
+            width="1200"
+            height="900"
+            ratio="4 / 3"
+            badge={<SinceBadge>{STORY.eyebrow}</SinceBadge>}
+          />
+          <div className="story__txt">
             <h2 id="story-head">{STORY.title}</h2>
             {STORY.body.map((p) => (
               <p key={p.slice(0, 24)}>{p}</p>
@@ -158,68 +172,32 @@ export default function Catering() {
               {STORY.cta}
             </a>
           </div>
-          <figure className="split__figure">
-            <img
-              src={tray}
-              alt="A catering tray of assorted Merci Market sandwiches, cut and arranged for a group."
-              width="1200"
-              height="800"
-              loading="lazy"
-            />
-          </figure>
         </div>
       </section>
 
-      {/* ---- FAQ --------------------------------------------------------------- */}
-      <section className="section section--band" id="faq" aria-labelledby="faq-head">
-        <div className="shell shell--narrow">
-          <h2 id="faq-head">The questions people ask before they order</h2>
-          <p className="lede">{FAQ_INTRO}</p>
+      {/* ---- FAQ ----------------------------------------------------------------- */}
+      <section className="shell section" id="faq" aria-labelledby="faq-head">
+        <SectionHead id="faq-head" title="The questions people ask before they order">
+          {FAQ_INTRO}
+        </SectionHead>
+        <Faq items={FAQ} />
+      </section>
 
-          <div className="faq">
-            {FAQ.map((f, i) => (
-              <div key={f.q} className={`faq__row${f.pending ? ' faq__row--pending' : ''}`}>
-                <h3 className="faq__q">
-                  <button
-                    type="button"
-                    className="faq__btn"
-                    aria-expanded={open === i}
-                    onClick={() => setOpen(open === i ? -1 : i)}
-                  >
-                    <span>
-                      {f.pending && <span className="pill pill--needs">Needs an answer</span>}
-                      {f.q}
-                    </span>
-                    <span className="faq__mark" aria-hidden="true">
-                      {open === i ? '–' : '+'}
-                    </span>
-                  </button>
-                </h3>
-                {open === i && (
-                  <div className="faq__a">
-                    <p>{f.a}</p>
-                  </div>
-                )}
-              </div>
-            ))}
+      {/* ---- Closing CTA ---------------------------------------------------------- */}
+      <section className="shell section section--tight" id="pick" aria-labelledby="pickc-head">
+        <div className="closecta">
+          <h2 id="pickc-head">{PICK_CTA.title}</h2>
+          <p>{PICK_CTA.body}</p>
+          <div className="row closecta__row">
+            <Link className="btn btn--primary btn--lg" to="/#pick">
+              Choose your store
+            </Link>
+            <Link className="btn btn--ghost btn--lg" to="/menu/bryant-park">
+              Browse the full menu
+            </Link>
           </div>
         </div>
       </section>
-
-      {/* ---- Which kitchen is cooking? ------------------------------------------ */}
-      <StorePicker
-        id="pick"
-        headingId="pickc-head"
-        title={PICK_CTA.title}
-        note={PICK_CTA.body}
-        onChoose={choose}
-      >
-        <p className="picker__alt">
-          <Link to="/menu/bryant-park" className="btn btn--ghost">
-            Browse the full menu
-          </Link>
-        </p>
-      </StorePicker>
     </>
   );
 }

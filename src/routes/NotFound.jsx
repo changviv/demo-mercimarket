@@ -1,12 +1,19 @@
 import { Link } from 'react-router-dom';
 import { LOCATIONS } from '../data/locations.js';
+import EmptyState from '../components/EmptyState.jsx';
 
 export default function NotFound() {
   return (
     <div className="shell section">
-      <div className="empty card card--pad">
-        <p className="eyebrow">404</p>
-        <h1>That page is not here</h1>
+      <EmptyState
+        eyebrow="404"
+        title="That page is not here"
+        action={
+          <Link to="/" className="btn btn--primary">
+            Back to catering home
+          </Link>
+        }
+      >
         <p>
           It may have moved, or the link may be old. Everything on this site starts from a
           location, so pick one and you are back in the flow.
@@ -20,10 +27,7 @@ export default function NotFound() {
             </li>
           ))}
         </ul>
-        <Link to="/" className="btn btn--primary">
-          Back to catering home
-        </Link>
-      </div>
+      </EmptyState>
     </div>
   );
 }

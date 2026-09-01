@@ -136,8 +136,11 @@ async function run() {
 
       found.forEach((f) => problems.push(`${route} — ${f}`));
 
-      /* The store picker must have identical anatomy wherever it renders. */
-      if (route === '/' || route === '/catering') {
+      /* The store picker must have identical anatomy wherever it renders.
+         It renders on the home page only: per artifact b099617a the catering
+         page closes with a CTA card, so that one page does not carry two
+         competing primary actions. */
+      if (route === '/') {
         const anatomy = await page.evaluate(() => {
           const card = document.querySelector('.loc');
           if (!card) return { error: 'no .loc' };
@@ -169,6 +172,19 @@ async function run() {
             problems.push(`${route} — markup still uses removed classes: ${anatomy.deadClasses.join(', ')}`);
           }
         }
+      }
+
+      /* The catering page closes with the CTA card, and must NOT duplicate the
+         picker grid. */
+      if (route === '/catering') {
+        const close = await page.evaluate(() => ({
+          hasCta: !!document.querySelector('.closecta'),
+          strayPicker: document.querySelectorAll('.loc').length,
+          ctaButtons: document.querySelectorAll('.closecta a').length,
+        }));
+        if (!close.hasCta) problems.push(`${route} — closing CTA card missing`);
+        if (close.strayPicker) problems.push(`${route} — duplicates the store picker (${close.strayPicker} cards)`);
+        if (close.ctaButtons !== 2) problems.push(`${route} — closing CTA has ${close.ctaButtons} buttons, expected 2`);
       }
     }
 

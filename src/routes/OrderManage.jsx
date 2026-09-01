@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { getOrder, updateOrder, cancelOrder } from '../lib/api.js';
 import { money, dateLong, plural } from '../lib/format.js';
 import { MINIMUM_GUESTS, TAX_RATE } from '../data/site.js';
+import Stepper from '../components/Stepper.jsx';
+import EmptyState from '../components/EmptyState.jsx';
 
 /* Prototype section 6 — "Change it, and see the cost".
 
@@ -51,13 +53,16 @@ export default function OrderManage() {
   if (error) {
     return (
       <div className="shell section">
-        <div className="empty card card--pad">
-          <h1>We could not load that order</h1>
+        <EmptyState
+          title="We could not load that order"
+          action={
+            <Link to="/" className="btn btn--primary">
+              Start a new order
+            </Link>
+          }
+        >
           <p>{error}</p>
-          <Link to="/" className="btn btn--primary">
-            Start a new order
-          </Link>
-        </div>
+        </EmptyState>
       </div>
     );
   }
@@ -333,41 +338,6 @@ export default function OrderManage() {
 }
 
 /* -------------------------------------------------------------------------- */
-
-function Stepper({ value, min, max, label, onChange }) {
-  return (
-    <div className="guests__control">
-      <button
-        type="button"
-        className="guests__step"
-        onClick={() => onChange(Math.max(min, value - 1))}
-        disabled={value <= min}
-        aria-label={`Fewer ${label}`}
-      >
-        −
-      </button>
-      <input
-        className="guests__input"
-        type="number"
-        inputMode="numeric"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => onChange(Math.max(min, Math.min(max, Number(e.target.value) || min)))}
-        aria-label={label}
-      />
-      <button
-        type="button"
-        className="guests__step"
-        onClick={() => onChange(Math.min(max, value + 1))}
-        disabled={value >= max}
-        aria-label={`More ${label}`}
-      >
-        +
-      </button>
-    </div>
-  );
-}
 
 const unitLabel = (l) =>
   l.unit === 'box' ? `${money(l.price)} per box` : `${money(l.price)} per person`;

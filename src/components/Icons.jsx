@@ -20,3 +20,10 @@ export const Arrow = () => (
     />
   </svg>
 );
+
+/* The FAQ toggle: a plus that rotates 45° into a cross when the row opens. */
+export const Plus = () => (
+  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+    <path d="M7.5 1v13M1 7.5h13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);

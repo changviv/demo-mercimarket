@@ -90,8 +90,11 @@ for (const f of styles) {
   for (const m of readFileSync(f, 'utf8').matchAll(/var\(\s*(--[\w-]+)/g)) used.add(m[1]);
 }
 for (const name of used) {
-  // Locally scoped component vars (--btn-*) are declared where they are used.
-  if (!defined.has(name) && !name.startsWith('--btn-')) {
+  /* Locally scoped custom properties are declared where they are used — on the
+     component (--btn-*) or per instance from JSX (--art-*). They are parameters,
+     not design tokens, so they do not belong in tokens.css. */
+  const local = name.startsWith('--btn-') || name.startsWith('--art-');
+  if (!defined.has(name) && !local) {
     problems.push(`var(${name}) is used but never defined in tokens.css`);
   }
 }

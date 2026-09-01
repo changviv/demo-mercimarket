@@ -6,6 +6,7 @@ import { DELIVERY_WINDOWS, TAX_RATE } from '../data/site.js';
 import { money, daysUntil, plural } from '../lib/format.js';
 import { priceOrder, createOrder } from '../lib/api.js';
 import StripePayment from '../components/StripePayment.jsx';
+import EmptyState from '../components/EmptyState.jsx';
 
 /* Prototype section 5 — "Toast + Stripe, per location".
 
@@ -566,13 +567,16 @@ function Field({ label, id, value, onChange, error, optional, hint, type = 'text
 function EmptyBasket() {
   return (
     <div className="shell section">
-      <div className="empty card card--pad">
-        <h1>There is nothing on this order yet</h1>
+      <EmptyState
+        title="There is nothing on this order yet"
+        action={
+          <Link to="/" className="btn btn--primary">
+            Choose your store
+          </Link>
+        }
+      >
         <p>Pick a kitchen and add a platter, and this page will have something to check out.</p>
-        <Link to="/" className="btn btn--primary">
-          Choose your store
-        </Link>
-      </div>
+      </EmptyState>
     </div>
   );
 }

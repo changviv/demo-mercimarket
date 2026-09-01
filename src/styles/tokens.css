@@ -41,6 +41,7 @@
   --honey: #f5b93e;         /* fill/rule only — fails as text on cream */
   --honey-ink: #7a5304;     /* honey AS TEXT               6.2:1 on cream */
   --honey-tint: #fdf0d8;
+  --on-honey: #1a120e;      /* text on a honey fill        11.4:1 */
 
   /* ---- Elevation --------------------------------------------------------- */
   --lift: 0 1px 2px rgba(60, 44, 24, 0.06), 0 12px 32px -18px rgba(60, 44, 24, 0.34);
@@ -84,6 +85,7 @@
 
   /* ---- Radius ------------------------------------------------------------ */
   --r-sm: 10px;
+  --r-tab: 12px;            /* the honey "Est. 1979" tab */
   --r: 16px;
   --r-lg: 24px;
   --r-pill: 999px;
@@ -99,10 +101,12 @@
   /* ---- Motion ------------------------------------------------------------ */
   --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
   --dur: 180ms;
+  --dur-slow: 220ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
     --dur: 0ms;
+    --dur-slow: 0ms;
   }
 }
