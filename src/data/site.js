@@ -98,6 +98,18 @@ export const MODES = [
   },
 ];
 
+/* The catering hand-off on the home page. It sits directly after the store
+   picker: someone who has just scanned six locations and not clicked one is
+   usually feeding a group, and this is the question they have. Every claim here
+   is drawn from data the app already holds — the minimum, the per-person
+   pricing and the six kitchens — so nothing on it can go stale silently. */
+export const HOME_CATERING_CTA = {
+  title: 'Catering for every occasion',
+  body: 'Breakfast platters, sandwich packages, salads and hors d’oeuvres from the same six kitchens. Eight-person minimum, per-person pricing, and a real total before you commit — no quote form and no callback.',
+  primary: 'See how catering works',
+  secondary: 'Browse the full menu',
+};
+
 export const HERO_FACTS = [
   { n: '6', t: 'Manhattan locations, each with its own kitchen' },
   { n: '24/7', t: 'at Chelsea, Bryant Park and Central Park' },

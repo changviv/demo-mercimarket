@@ -2326,10 +2326,18 @@
 .closecta {
   padding: 40px 30px;
   text-align: center;
-  background: var(--surface);
   border: 1.5px solid var(--line);
   border-radius: var(--r-lg);
   box-shadow: var(--lift);
+}
+
+.closecta--surface {
+  background: var(--surface);
+}
+
+/* For use on a white band, where a white card would disappear. */
+.closecta--cream {
+  background: var(--cream);
 }
 
 .closecta h2 {

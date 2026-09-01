@@ -17,6 +17,7 @@ import StatStrip from '../components/StatStrip.jsx';
 import SectionHead from '../components/SectionHead.jsx';
 import ArtFrame, { DotBadge, SinceBadge } from '../components/ArtFrame.jsx';
 import Faq from '../components/Faq.jsx';
+import CtaCard from '../components/CtaCard.jsx';
 import { Arrow } from '../components/Icons.jsx';
 import spread from '/img/spread.webp';
 import tray from '/img/tray.webp';
@@ -184,20 +185,22 @@ export default function Catering() {
       </section>
 
       {/* ---- Closing CTA ---------------------------------------------------------- */}
-      <section className="shell section section--tight" id="pick" aria-labelledby="pickc-head">
-        <div className="closecta">
-          <h2 id="pickc-head">{PICK_CTA.title}</h2>
-          <p>{PICK_CTA.body}</p>
-          <div className="row closecta__row">
+      <CtaCard
+        id="pick"
+        headingId="pickc-head"
+        title={PICK_CTA.title}
+        body={PICK_CTA.body}
+        actions={
+          <>
             <Link className="btn btn--primary btn--lg" to="/#pick">
               Choose your store
             </Link>
             <Link className="btn btn--ghost btn--lg" to="/menu/bryant-park">
               Browse the full menu
             </Link>
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      />
     </>
   );
 }

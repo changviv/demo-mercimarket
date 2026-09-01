@@ -69,9 +69,12 @@ const EXPECT = [
       'Bryant Park',
       'Central Park',
       'Min 8 people',
+      // The catering hand-off, directly after the locations.
+      'Catering for every occasion',
+      'Eight-person minimum, per-person pricing',
     ],
-    cta: ['Pickup', 'Delivery', 'Catering'],
-    count: [['.loc', 6], ['.mode', 3], ['.fact', 4]],
+    cta: ['Pickup', 'Delivery', 'Catering', 'See how catering works', 'Browse the full menu'],
+    count: [['.loc', 6], ['.mode', 3], ['.fact', 4], ['#catering-cta', 1]],
   },
   {
     section: '3 · Menu browse',

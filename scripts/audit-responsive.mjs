@@ -174,6 +174,26 @@ async function run() {
         }
       }
 
+      /* The home page hands off to catering directly after the locations. */
+      if (route === '/') {
+        const cta = await page.evaluate(() => {
+          const c = document.getElementById('catering-cta');
+          if (!c) return { missing: true };
+          const y = (e) => e.getBoundingClientRect().top + window.scrollY;
+          return {
+            afterPicker: y(document.getElementById('pick')) < y(c),
+            beforeFacts: y(c) < y(document.querySelector('.facts')),
+            links: [...c.querySelectorAll('a')].map((a) => a.getAttribute('href')),
+          };
+        });
+        if (cta.missing) problems.push(`${route} — catering CTA section missing`);
+        else {
+          if (!cta.afterPicker) problems.push(`${route} — catering CTA is not after the locations`);
+          if (!cta.beforeFacts) problems.push(`${route} — catering CTA is not before the facts strip`);
+          if (!cta.links.includes('/catering')) problems.push(`${route} — catering CTA does not link to /catering`);
+        }
+      }
+
       /* The catering page closes with the CTA card, and must NOT duplicate the
          picker grid. */
       if (route === '/catering') {

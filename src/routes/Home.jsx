@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { HERO, MODES, HERO_FACTS } from '../data/site.js';
+import { Link, useNavigate } from 'react-router-dom';
+import { HERO, MODES, HERO_FACTS, HOME_CATERING_CTA } from '../data/site.js';
 import { useOrder } from '../state/OrderContext.jsx';
 import StorePicker from '../components/StorePicker.jsx';
 import StatStrip from '../components/StatStrip.jsx';
 import ArtFrame, { DotBadge } from '../components/ArtFrame.jsx';
+import CtaCard from '../components/CtaCard.jsx';
 import storefront from '/img/storefront.webp';
 
 /* Prototype section 2 — "Home & store picker", built to the approved hero
@@ -94,6 +95,24 @@ export default function Home() {
         cta={active.cta}
         showMin={Boolean(active.min)}
         onChoose={choose}
+      />
+
+      {/* ---- Catering hand-off, straight after the locations -------------------- */}
+      <CtaCard
+        id="catering-cta"
+        headingId="ccta-head"
+        title={HOME_CATERING_CTA.title}
+        body={HOME_CATERING_CTA.body}
+        actions={
+          <>
+            <Link className="btn btn--primary btn--lg" to="/catering">
+              {HOME_CATERING_CTA.primary}
+            </Link>
+            <Link className="btn btn--ghost btn--lg" to="/menu/bryant-park">
+              {HOME_CATERING_CTA.secondary}
+            </Link>
+          </>
+        }
       />
 
       {/* ---- Facts ------------------------------------------------------------- */}
