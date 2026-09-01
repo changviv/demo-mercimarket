@@ -14,8 +14,9 @@
     "audit:tokens": "node scripts/audit-tokens.mjs",
     "audit:links": "node scripts/audit-links.mjs",
     "audit:parity": "node scripts/audit-parity.mjs",
+    "audit:responsive": "node scripts/audit-responsive.mjs",
     "audit:secrets": "node scripts/audit-secrets.mjs",
-    "audit": "npm run audit:tokens && npm run audit:secrets && npm run audit:links && npm run audit:parity"
+    "audit": "npm run audit:tokens && npm run audit:secrets && npm run audit:links && npm run audit:parity && npm run audit:responsive"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^3.1.1",

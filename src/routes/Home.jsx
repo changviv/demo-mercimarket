@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LOCATIONS, locationStatus } from '../data/locations.js';
-import { HERO, MODES, HERO_FACTS, MINIMUM_GUESTS } from '../data/site.js';
+import { HERO, MODES, HERO_FACTS } from '../data/site.js';
 import { useOrder } from '../state/OrderContext.jsx';
-import { Clock, Arrow } from '../components/Icons.jsx';
+import StorePicker from '../components/StorePicker.jsx';
 import storefront from '/img/storefront.webp';
 
 /* Prototype section 2 — "Home & store picker", built to the approved hero
@@ -96,50 +95,13 @@ export default function Home() {
       </section>
 
       {/* ---- Picker ----------------------------------------------------------- */}
-      <section className="shell picker" id="pick" aria-labelledby="pick-head">
-        <div className="picker__head">
-          <h2 id="pick-head">{active.title}</h2>
-          <p>{HERO.pickerSub}</p>
-        </div>
-
-        <ul className="picker__grid">
-          {LOCATIONS.map((loc) => {
-            const st = locationStatus(loc);
-            return (
-              <li key={loc.id}>
-                <button type="button" className="loc" onClick={() => choose(loc)}>
-                  <span className="loc__top">
-                    <span className={`pill ${st.open ? 'pill--open' : 'pill--shut'}`}>
-                      <span className="pill__dot" aria-hidden="true" />
-                      {st.label}
-                    </span>
-                    <span className="loc__name">{loc.name}</span>
-                    <span className="loc__addr">
-                      {loc.addr}
-                      <br />
-                      {loc.city}
-                    </span>
-                    <span className="loc__hours">
-                      <Clock />
-                      <span>Today&nbsp;&nbsp;{st.today}</span>
-                    </span>
-                  </span>
-
-                  <span className="loc__foot">
-                    <span className="loc__cta">
-                      {active.cta}
-                      <Arrow />
-                    </span>
-                    {active.min && (
-                      <span className="loc__min">Min {MINIMUM_GUESTS} people</span>
-                    )}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      <StorePicker
+        title={active.title}
+        note={HERO.pickerSub}
+        cta={active.cta}
+        showMin={Boolean(active.min)}
+        onChoose={choose}
+      />
 
       {/* ---- Facts ------------------------------------------------------------- */}
       <section className="facts" aria-label="Merci Market in numbers">

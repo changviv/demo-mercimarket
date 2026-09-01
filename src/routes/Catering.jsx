@@ -12,11 +12,10 @@ import {
   FAQ,
   FAQ_INTRO,
   PICK_CTA,
-  MINIMUM_GUESTS,
 } from '../data/site.js';
 import { MENU } from '../data/menu.js';
-import { LOCATIONS, locationStatus } from '../data/locations.js';
 import { useOrder } from '../state/OrderContext.jsx';
+import StorePicker from '../components/StorePicker.jsx';
 import spread from '/img/spread.webp';
 import tray from '/img/tray.webp';
 
@@ -208,48 +207,19 @@ export default function Catering() {
       </section>
 
       {/* ---- Which kitchen is cooking? ------------------------------------------ */}
-      <section className="picker" id="pick" aria-labelledby="pickc-head">
-        <div className="shell">
-          <div className="picker__head">
-            <h2 id="pickc-head">{PICK_CTA.title}</h2>
-            <p className="picker__note">{PICK_CTA.body}</p>
-          </div>
-
-          <ul className="picker__grid grid">
-            {LOCATIONS.map((loc) => {
-              const st = locationStatus(loc);
-              return (
-                <li key={loc.id}>
-                  <button type="button" className="loc" onClick={() => choose(loc)}>
-                    <span className={`pill ${st.open ? 'pill--open' : 'pill--shut'}`}>
-                      {st.label}
-                    </span>
-                    <span className="loc__body">
-                      <span className="loc__name">{loc.name}</span>
-                      <span className="loc__addr">{loc.addr}</span>
-                      <span className="loc__addr loc__addr--dim">{loc.city}</span>
-                    </span>
-                    <span className="loc__today">
-                      <span className="loc__today-k">Today</span>
-                      <span className="loc__today-v">{st.today}</span>
-                    </span>
-                    <span className="loc__foot">
-                      <span className="loc__go">Order Catering</span>
-                      <span className="loc__min">Min {MINIMUM_GUESTS} people</span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-
-          <p className="picker__alt">
-            <Link to="/menu/bryant-park" className="btn btn--ghost">
-              Browse the full menu
-            </Link>
-          </p>
-        </div>
-      </section>
+      <StorePicker
+        id="pick"
+        headingId="pickc-head"
+        title={PICK_CTA.title}
+        note={PICK_CTA.body}
+        onChoose={choose}
+      >
+        <p className="picker__alt">
+          <Link to="/menu/bryant-park" className="btn btn--ghost">
+            Browse the full menu
+          </Link>
+        </p>
+      </StorePicker>
     </>
   );
 }

@@ -432,6 +432,10 @@
   color: var(--ink-3);
 }
 
+.picker__alt {
+  margin: 26px 0 0;
+}
+
 /* The status pill carries a dot the size of the text's own weight. */
 .pill__dot {
   width: 7px;
