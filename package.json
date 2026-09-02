@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Merci Market NYC catering ordering — React front end with Toast POS and Stripe integration, one account per location.",
+  "description": "Merci Market NYC catering ordering \u2014 React front end with Toast POS and Stripe integration, one account per location.",
   "scripts": {
     "dev": "vite",
     "dev:api": "node --watch server/index.js",
@@ -16,7 +16,8 @@
     "audit:parity": "node scripts/audit-parity.mjs",
     "audit:responsive": "node scripts/audit-responsive.mjs",
     "audit:secrets": "node scripts/audit-secrets.mjs",
-    "audit": "npm run audit:tokens && npm run audit:secrets && npm run audit:links && npm run audit:parity && npm run audit:responsive"
+    "audit": "npm run audit:tokens && npm run audit:secrets && npm run audit:links && npm run audit:parity && npm run audit:artifact && npm run audit:responsive",
+    "audit:artifact": "node scripts/audit-artifact.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^3.1.1",

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { groupOptions } from '../data/menu.js';
-import { GROUP_NOTES, groupSatisfied } from '../data/options.js';
-import { money } from '../lib/format.js';
-import Stepper from './Stepper.jsx';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { groupOptions } from "../data/menu.js";
+import { GROUP_NOTES, groupSatisfied } from "../data/options.js";
+import { money } from "../lib/format.js";
+import Stepper from "./Stepper.jsx";
 
 /* Prototype section 4 — the item configurator, as a sheet over the menu.
 
@@ -27,18 +27,21 @@ import Stepper from './Stepper.jsx';
 
 export default function ItemSheet({ item, guests, onAdd, onClose }) {
   const [selections, setSelections] = useState(() =>
-    Object.fromEntries((item.groups || []).map((g) => [g.id, []]))
+    Object.fromEntries((item.groups || []).map((g) => [g.id, []])),
   );
   const [veg, setVeg] = useState(0);
-  const [allergies, setAllergies] = useState('');
+  const [allergies, setAllergies] = useState("");
   const [qty, setQty] = useState(1);
 
   const panelRef = useRef(null);
   const closeRef = useRef(null);
 
   const missing = useMemo(
-    () => (item.groups || []).filter((g) => g.req && !groupSatisfied(g, selections[g.id])),
-    [item.groups, selections]
+    () =>
+      (item.groups || []).filter(
+        (g) => g.req && !groupSatisfied(g, selections[g.id]),
+      ),
+    [item.groups, selections],
   );
 
   /* A sheet is a dialog: Escape closes it, focus is trapped inside while it is
@@ -47,19 +50,19 @@ export default function ItemSheet({ item, guests, onAdd, onClose }) {
   useEffect(() => {
     const prev = document.activeElement;
     const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     closeRef.current?.focus();
 
     const onKey = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.stopPropagation();
         onClose();
         return;
       }
-      if (e.key !== 'Tab' || !panelRef.current) return;
+      if (e.key !== "Tab" || !panelRef.current) return;
       const nodes = [
         ...panelRef.current.querySelectorAll(
-          'a[href], button:not(:disabled), input:not(:disabled), textarea, [tabindex]:not([tabindex="-1"])'
+          'a[href], button:not(:disabled), input:not(:disabled), textarea, [tabindex]:not([tabindex="-1"])',
         ),
       ].filter((n) => n.offsetParent !== null);
       if (!nodes.length) return;
@@ -74,23 +77,24 @@ export default function ItemSheet({ item, guests, onAdd, onClose }) {
       }
     };
 
-    document.addEventListener('keydown', onKey, true);
+    document.addEventListener("keydown", onKey, true);
     return () => {
-      document.removeEventListener('keydown', onKey, true);
+      document.removeEventListener("keydown", onKey, true);
       document.body.style.overflow = prevOverflow;
       if (prev instanceof HTMLElement) prev.focus();
     };
   }, [onClose]);
 
-  const units = item.unit === 'box' ? qty : guests * qty;
+  const units = item.unit === "box" ? qty : guests * qty;
   const total = units * item.price;
   const blocked = missing.length > 0;
 
   function pick(group, option) {
     setSelections((s) => {
       const cur = s[group.id] || [];
-      if (group.type === 'one') return { ...s, [group.id]: [option] };
-      if (cur.includes(option)) return { ...s, [group.id]: cur.filter((o) => o !== option) };
+      if (group.type === "one") return { ...s, [group.id]: [option] };
+      if (cur.includes(option))
+        return { ...s, [group.id]: cur.filter((o) => o !== option) };
       if (group.max > 0 && cur.length >= group.max) return s;
       return { ...s, [group.id]: [...cur, option] };
     });
@@ -103,7 +107,7 @@ export default function ItemSheet({ item, guests, onAdd, onClose }) {
       name: item.name,
       price: item.price,
       qty,
-      unit: item.unit || 'person',
+      unit: item.unit || "person",
       serves: item.serves,
       selections,
       vegetarian: veg,
@@ -112,27 +116,48 @@ export default function ItemSheet({ item, guests, onAdd, onClose }) {
   }
 
   return (
-    <>
-      <div className="sheet__scrim" onClick={onClose} />
+    /* The scrim is the layout: a flex container that bottom-anchors the sheet
+       on a phone and centres it once there is room. Clicking it closes, but
+       only when the click is the scrim itself — a mousedown that starts inside
+       the sheet and drifts out (selecting text, dragging the textarea handle)
+       must not dismiss the thing you were reading. */
+    <div
+      className="scrim"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
         className="sheet"
         role="dialog"
         aria-modal="true"
         aria-labelledby="sheet-title"
         ref={panelRef}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         <header className="sheet__head">
-          <div>
-            <span className="sheet__badges">
-              {item.popular && <span className="badge badge--pop">Most popular</span>}
-              {item.vegetarian && <span className="badge badge--veg">Vegetarian</span>}
-            </span>
+          <div className="sheet__title">
+            {(item.popular || item.vegetarian) && (
+              <span className="sheet__badges">
+                {item.popular && (
+                  <span className="badge badge--pop">Most popular</span>
+                )}
+                {item.vegetarian && (
+                  <span className="badge badge--veg">Vegetarian</span>
+                )}
+              </span>
+            )}
             <h2 id="sheet-title">{item.name}</h2>
             <p className="sheet__desc">{item.desc}</p>
           </div>
-          <button type="button" className="sheet__x" onClick={onClose} ref={closeRef}>
-            <span aria-hidden="true">×</span>
-            <span className="visually-hidden">Close</span>
+          <button
+            type="button"
+            className="sheet__x"
+            onClick={onClose}
+            ref={closeRef}
+            aria-label="Close"
+          >
+            ×
           </button>
         </header>
 
@@ -147,32 +172,52 @@ export default function ItemSheet({ item, guests, onAdd, onClose }) {
 
           {item.groups.length === 0 && (
             <p className="note">
-              <span>No choices to make on this one — it comes as described.</span>
+              <span>
+                No choices to make on this one — it comes as described.
+              </span>
             </p>
           )}
 
           {item.groups.map((group) => {
             const opts = groupOptions(group);
             const chosen = selections[group.id] || [];
-            const atMax = group.type === 'upto' && group.max > 0 && chosen.length >= group.max;
+            const atMax =
+              group.type === "upto" &&
+              group.max > 0 &&
+              chosen.length >= group.max;
 
             return (
               <fieldset key={group.id} className="group">
                 <legend className="group__legend">
                   <span className="group__title">{group.title}</span>
-                  {group.type === 'upto' && group.max > 0 && (
-                    <span className="group__count">
-                      {chosen.length} of {group.max}
-                    </span>
-                  )}
+                  {/* The rule's live state, as a pill: "Chosen"/"Required" for
+                      a pick-one, "n of max" where there is a ceiling, and
+                      "n chosen" where the live site sets no limit at all.
+                      Tomato until the group is satisfied, basil after — so a
+                      finished group is legible without counting ticks. */}
+                  <span
+                    className={`group__count${
+                      chosen.length >= (group.req ? 1 : 0)
+                        ? " group__count--done"
+                        : ""
+                    }`}
+                  >
+                    {group.type === "one"
+                      ? chosen.length
+                        ? "Chosen"
+                        : "Required"
+                      : group.max > 0
+                        ? `${chosen.length} of ${group.max}`
+                        : `${chosen.length} chosen`}
+                  </span>
                 </legend>
 
                 <p className="group__rule">
-                  {group.type === 'one'
-                    ? 'Pick one.'
+                  {group.type === "one"
+                    ? "Pick one."
                     : group.max > 0
                       ? `Pick up to ${group.max}.`
-                      : 'Pick as many as you like.'}
+                      : "Pick as many as you like."}
                 </p>
 
                 {GROUP_NOTES[group.id] && (
@@ -188,15 +233,20 @@ export default function ItemSheet({ item, guests, onAdd, onClose }) {
                     return (
                       <li key={option}>
                         <label
-                          className={`opt${on ? ' opt--on' : ''}${disabled ? ' opt--off' : ''}`}
+                          className={`opt opt--${group.type === "one" ? "radio" : "check"}${
+                            on ? " opt--on" : ""
+                          }${disabled ? " opt--off" : ""}`}
                         >
                           <input
-                            type={group.type === 'one' ? 'radio' : 'checkbox'}
+                            type={group.type === "one" ? "radio" : "checkbox"}
                             name={`${item.id}-${group.id}`}
                             checked={on}
                             disabled={disabled}
                             onChange={() => pick(group, option)}
                           />
+                          <span className="opt__mark" aria-hidden="true">
+                            <Tick />
+                          </span>
                           <span className="opt__label">{option}</span>
                         </label>
                       </li>
@@ -208,15 +258,20 @@ export default function ItemSheet({ item, guests, onAdd, onClose }) {
           })}
 
           {/* The live site asks this as four separate tick boxes. It is a
-              number, so it gets a number. */}
-          {item.categoryId === 'sandwich-platters' && (
+              number, so it gets a number.
+
+              Driven by the item's own vegCount flag (see menu.js), not by its
+              category: the category rule asked the question on the three
+              sandwich packages and nowhere else, and missed Breakfast Wraps,
+              where the artifact asks it. */}
+          {item.vegCount && (
             <fieldset className="group">
               <legend className="group__legend">
                 <span className="group__title">Vegetarian sandwiches</span>
               </legend>
               <p className="group__rule">
-                How many of the sandwiches should be vegetarian? The live site asks this as
-                four separate tick boxes.
+                How many of the sandwiches should be vegetarian? The live site
+                asks this as four separate tick boxes.
               </p>
               <div className="row">
                 <Stepper
@@ -231,10 +286,20 @@ export default function ItemSheet({ item, guests, onAdd, onClose }) {
             </fieldset>
           )}
 
-          <div className="field">
-            <label className="field__label" htmlFor="allergies">
-              Allergies or special requests
-            </label>
+          {/* A group like the others, not a form field bolted on the end. In
+              the body of this dialog every block is a titled band with a line
+              of help beneath it, and the allergies question is the same shape —
+              which is how the artifact renders it too. */}
+          <fieldset className="group">
+            <legend className="group__legend">
+              <span className="group__title">
+                <label htmlFor="allergies">Allergies or special requests</label>
+              </span>
+            </legend>
+            <p className="group__rule" id="allergies-hint">
+              Anything the kitchen should know. This travels with the line item
+              to the store.
+            </p>
             <textarea
               id="allergies"
               className="textarea"
@@ -242,35 +307,38 @@ export default function ItemSheet({ item, guests, onAdd, onClose }) {
               onChange={(e) => setAllergies(e.target.value)}
               aria-describedby="allergies-hint"
             />
-            <span className="field__hint" id="allergies-hint">
-              Anything the kitchen should know. This travels with the line item to the
-              store.
-            </span>
-          </div>
+          </fieldset>
         </div>
 
         <footer className="sheet__foot">
           {blocked && (
             <p className="sheet__missing" role="status">
-              Still to choose: {missing.map((g) => g.title.toLowerCase()).join(', ')}.
+              Still to choose:{" "}
+              {missing.map((g) => g.title.toLowerCase()).join(", ")}.
             </p>
           )}
 
           <div className="sheet__money">
             <strong className="money">{money(total)}</strong>
             <span>
-              {item.unit === 'box'
-                ? `${money(item.price)} × ${qty} ${qty === 1 ? 'box' : 'boxes'}`
-                : `${money(item.price)} × ${guests} guests`}
+              {item.unit === "box"
+                ? `${money(item.price)} × ${qty} ${qty === 1 ? "box" : "boxes"}`
+                : `${money(item.price)} × ${guests} guests${qty > 1 ? ` × ${qty}` : ""}`}
             </span>
           </div>
 
           <div className="sheet__actions">
-            <Stepper value={qty} min={1} max={50} onChange={setQty} label="quantity" />
+            <Stepper
+              value={qty}
+              min={1}
+              max={50}
+              onChange={setQty}
+              label="quantity"
+            />
 
             <button
               type="button"
-              className="btn btn--primary btn--lg sheet__add"
+              className="btn btn--primary sheet__add"
               onClick={submit}
               disabled={blocked}
             >
@@ -279,6 +347,28 @@ export default function ItemSheet({ item, guests, onAdd, onClose }) {
           </div>
         </footer>
       </div>
-    </>
+    </div>
+  );
+}
+
+/* The tick inside a chosen option's mark. Drawn rather than a glyph so it
+   scales with the mark and inherits its colour. */
+function Tick() {
+  return (
+    <svg
+      width="12"
+      height="10"
+      viewBox="0 0 12 10"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M1 5.2L4.3 8.5L11 1.8"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

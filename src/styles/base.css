@@ -8,6 +8,25 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Every in-page jump glides: the menu's category rail and its mobile chip
+     row, the catering page's "How it works", the masthead anchors. Landing
+     instantly ten thousand pixels down a 76-item menu gives no sense of having
+     MOVED — you simply find yourself somewhere else, with nothing to say
+     whether you went up or down. The travel is the orientation.
+
+     Set on html rather than per-link so it also covers scrollIntoView and any
+     scrollTo that does not name a behaviour, and so a new anchor cannot be
+     added later that quietly jumps. Overridden below for reduced motion. */
+  scroll-behavior: smooth;
+}
+
+/* Motion sickness and vestibular disorders are the reason this exists: a long
+   smooth scroll is one of the worst offenders. `auto` here is an instant jump,
+   which is what someone with the preference set has asked for. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 body {
@@ -169,11 +188,21 @@ hr {
 }
 
 /* Anything the masthead can jump to needs clearance beneath it, or the sticky
-   header covers the heading you just navigated to. */
+   header covers the heading you just navigated to.
+
+   The amount is a VARIABLE, not a fixed value, because it differs by screen:
+   the marketing pages have one sticky bar, the browse screen has two. It used
+   to be written as a constant here and overridden on `.cat` — which silently
+   never applied, because `[id]:target` outranks a single class, so a category
+   jumped to from the rail landed 94px down with 152px of chrome above it and
+   its heading hidden behind the control bar. Setting the variable on the
+   destination instead means the value travels with the context and no rule has
+   to out-specify another. The default lives in tokens.css; screens with more
+   sticky chrome raise it on the destination itself. */
 [id]:target,
 .section[id],
 .picker[id] {
-  scroll-margin-top: calc(var(--header-h) + var(--s-4));
+  scroll-margin-top: var(--scroll-offset);
 }
 
 /* A section focused by the nav is a scroll destination, not a control. */
@@ -221,6 +250,16 @@ hr {
 
 /* ---- Buttons ------------------------------------------------------------- */
 
+/* Metrics are the artifacts' own: 46px min-height, an 11px/20px pad, a 1.5px
+   hairline and the inherited 1.6 line-height, which together render at 48px.
+   The build previously used a 44px min-height with line-height 1 and a 1px
+   border, making every button on every page 4px shorter and visually lighter
+   than the design — a divergence that never showed up because the parity audit
+   checked what buttons SAID, not what size they were.
+
+   The hero artifact says 12px/22px with a 9px gap and the menu artifact 11px/20px
+   with 8px; the menu's values are used for both, since a 1px difference is not
+   worth splitting the component in two. */
 .btn {
   --btn-bg: var(--surface);
   --btn-fg: var(--ink);
@@ -229,17 +268,16 @@ hr {
   align-items: center;
   justify-content: center;
   gap: var(--s-2);
-  min-height: var(--tap);
-  padding-left: var(--s-5);
-  padding-right: var(--s-5);
-  border: 1px solid var(--btn-line);
+  min-height: 46px;
+  padding: 11px var(--s-5);
+  border: 1.5px solid var(--btn-line);
   border-radius: var(--r-pill);
   background: var(--btn-bg);
   color: var(--btn-fg);
   font-family: var(--text);
   font-size: var(--fs-sm);
   font-weight: 700;
-  line-height: 1;
+  line-height: var(--lh-body);
   text-decoration: none;
   cursor: pointer;
   transition: transform var(--dur) var(--ease), background var(--dur) var(--ease),
@@ -273,24 +311,31 @@ hr {
   --btn-line: var(--tomato-deep);
 }
 
+/* `.btn-outline` in both artifacts is filled with --surface, not transparent:
+   on the cream ground a white capsule with a hairline reads as a button, and a
+   transparent one reads as text with a box drawn round it. */
 .btn--ghost {
-  --btn-bg: transparent;
+  --btn-bg: var(--surface);
   --btn-line: var(--line-strong);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  --btn-line: var(--tomato);
+  --btn-fg: var(--tomato-ink);
 }
 
 .btn--quiet {
   --btn-bg: transparent;
   --btn-line: transparent;
   --btn-fg: var(--tomato-ink);
-  padding-left: var(--s-2);
-  padding-right: var(--s-2);
+  min-height: var(--tap);
+  padding: 0 var(--s-2);
 }
 
 .btn--lg {
   min-height: 52px;
   font-size: var(--fs-body);
-  padding-left: var(--s-8);
-  padding-right: var(--s-8);
+  padding: 13px var(--s-8);
 }
 
 .btn--block {

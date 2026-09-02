@@ -241,6 +241,12 @@ async function run() {
           size: parseFloat(cs.fontSize),
           weight: parseInt(cs.fontWeight, 10) || 400,
           cls: el.className?.toString().slice(0, 28),
+          /* WCAG 1.4.3 exempts text that is part of an INACTIVE component.
+             Recorded rather than skipped, so the audit can still hold these to
+             a floor of its own — see below. */
+          inactive: !!el.closest(
+            'button:disabled, [aria-disabled="true"], fieldset:disabled, .btn--off'
+          ),
         });
       }
       return out;
@@ -254,12 +260,25 @@ async function run() {
       const bg = bgc.a < 1 ? over(bgc, [244, 229, 208]) : bgc.rgb;
       const r = ratio(over(fg, bg), bg);
       const large = n.size >= 24 || (n.size >= 18.66 && n.weight >= 700);
-      const need = large ? 3 : 4.5;
-      if (r < need - 0.02) fails.push(`"${n.text}" .${n.cls} ${r.toFixed(2)}:1 (needs ${need})`);
+      /* Disabled controls are exempt from AA entirely. This project still
+         holds them to 3:1, because a control you cannot see is one you cannot
+         tell is unavailable — the point of greying something out is that a
+         person reads it as "not now", not as "failed to render". */
+      const need = n.inactive ? 3 : large ? 3 : 4.5;
+      const kind = n.inactive ? ' [inactive, floor 3]' : '';
+      if (r < need - 0.02) {
+        fails.push(`"${n.text}" .${n.cls} ${r.toFixed(2)}:1 (needs ${need})${kind}`);
+      }
     }
 
     if (fails.length) F(`${route}: ${fails.length} contrast failures — ${fails.slice(0, 3).join(' | ')}`);
-    else P(`${route}: all ${nodes.length} text nodes meet WCAG AA`);
+    else {
+      const off = nodes.filter((n) => n.inactive).length;
+      P(
+        `${route}: all ${nodes.length} text nodes meet WCAG AA` +
+          (off ? ` (${off} inactive, held to 3:1)` : '')
+      );
+    }
   }
 
   /* ---- 6: overflow at nine widths ------------------------------------- */
@@ -291,14 +310,28 @@ async function run() {
     else F(`390px: chrome wrong — abar:${abar} burger:${burger} desktopNav:${desktopNav}`);
     await m.close();
 
+    /* The menu route runs the ORDERING masthead (artifact 06cbed02): no site
+       nav, the store block instead. So the desktop expectation here is the
+       store block and the sticky summary, not the nav — and the check is split
+       so a marketing route still proves the nav appears. */
     const d = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await d.goto(BASE + '/menu/bryant-park', { waitUntil: 'networkidle' });
     const abar2 = await d.locator('.abar').isVisible();
-    const nav2 = await d.locator('.mast__nav').isVisible();
+    const nav2 = await d.locator('.mast__nav').count();
+    const store2 = await d.locator('.mast__store').isVisible();
     const sum = await d.locator('.summary').isVisible();
-    if (!abar2 && nav2 && sum) P('1440px: desktop nav + sticky summary shown, action bar hidden');
-    else F(`1440px: chrome wrong — abar:${abar2} nav:${nav2} summary:${sum}`);
+    if (!abar2 && nav2 === 0 && store2 && sum) {
+      P('1440px menu: ordering masthead + sticky summary, no action bar, no site nav');
+    } else F(`1440px menu: chrome wrong — abar:${abar2} nav:${nav2} store:${store2} summary:${sum}`);
     await d.close();
+
+    const h = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await h.goto(BASE + '/', { waitUntil: 'networkidle' });
+    const navHome = await h.locator('.mast__nav').isVisible();
+    const storeHome = await h.locator('.mast__store').count();
+    if (navHome && storeHome === 0) P('1440px home: site nav shown, no ordering store block');
+    else F(`1440px home: chrome wrong — nav:${navHome} store:${storeHome}`);
+    await h.close();
   }
 
   /* ---- 7: the funnel completes ---------------------------------------- */
@@ -314,7 +347,7 @@ async function run() {
 
     await f.fill('#guests', '14');
     await f.waitForTimeout(250);
-    const line = await f.locator('.item__line').first().innerText();
+    const line = await f.locator('.line').first().innerText();
     if (/for 14$/.test(line.trim())) P(`funnel: headcount repriced the menu — "${line.trim()}"`);
     else F(`funnel: headcount did not reprice — "${line}"`);
 
@@ -324,8 +357,8 @@ async function run() {
     if (await add.isDisabled()) P('funnel: Add to order is disabled while a required group is unmet');
     else F('funnel: Add to order was enabled with a required group unmet');
 
-    const boxes = f.locator('.sheet .opts input[type="checkbox"]');
-    for (let i = 0; i < 3; i += 1) await boxes.nth(i).check();
+    const boxes = f.locator('.sheet .opts .opt');
+    for (let i = 0; i < 3; i += 1) await boxes.nth(i).click();
     await f.waitForTimeout(200);
     const disabledNow = await f.locator('.sheet .opts input:disabled').count();
     if (disabledNow > 0) P(`funnel: at max, ${disabledNow} remaining options disabled themselves`);
@@ -339,12 +372,13 @@ async function run() {
 
     await f.locator('.item', { hasText: 'All Out Sandwich Package' }).locator('.add').click();
     await f.waitForTimeout(300);
-    const b2 = f.locator('.sheet .opts input[type="checkbox"]');
-    for (let i = 0; i < 3; i += 1) await b2.nth(i).check();
+    const b2 = f.locator('.sheet .opts .opt');
+    for (let i = 0; i < 3; i += 1) await b2.nth(i).click();
     await f.locator('.sheet__add').click();
     await f.waitForTimeout(300);
 
-    const inSummary = await f.locator('.summary__line').count();
+    /* `.lines li` since the summary was rebuilt to the menu artifact's markup. */
+    const inSummary = await f.locator('.lines li').count();
     if (inSummary === 1) P('funnel: the item landed in the order summary');
     else F(`funnel: expected 1 summary line, got ${inSummary}`);
 
@@ -386,7 +420,10 @@ async function run() {
     if (/Breakfast Platters/.test(atTop)) P('scroll-spy: first category is active on load');
     else F(`scroll-spy: on load the rail shows "${atTop.replace(/\s+/g, ' ')}"`);
 
-    await s.locator('a[href="#salad-platters"]').click();
+    /* Scoped to the desktop rail: the mobile chip row carries the same anchors
+       (it is display:none at this width, but still in the DOM), so an
+       unscoped href selector matches two elements. */
+    await s.locator('.rail__link[href="#salad-platters"]').click();
     await s.waitForTimeout(900);
     const jumped = await on();
     // Regression: the trigger line must sit below where scroll-margin-top parks
@@ -402,6 +439,76 @@ async function run() {
     if (/Breakfast Platters/.test(back)) P('scroll-spy: jumping back to the top resets the rail');
     else F(`scroll-spy: after scrolling to top the rail is stuck on "${back.replace(/\s+/g, ' ')}"`);
     await s.close();
+  }
+
+  /* ---- 8c: anchors glide, and land clear of the sticky chrome ----------
+     A jump that teleports looks identical to one that glides in any
+     screenshot, so this samples the scroll position while it happens: one
+     distinct position means it teleported. It also checks where the heading
+     comes to rest, because an offset that is a few pixels short parks the
+     heading BEHIND the bar you just scrolled out from under — which is how
+     `.cat`'s scroll-margin-top sat unused for a while, silently outranked by
+     `[id]:target`. */
+  {
+    const sample = async (page, clickSel) => {
+      await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+      await page.waitForTimeout(300);
+      const positions = await page.evaluate(async (sel) => {
+        const out = [];
+        const id = setInterval(() => out.push(Math.round(window.scrollY)), 40);
+        document.querySelector(sel).click();
+        await new Promise((r) => setTimeout(r, 2200));
+        clearInterval(id);
+        return out;
+      }, clickSel);
+      return new Set(positions).size;
+    };
+
+    const g = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await g.goto(BASE + '/menu/bryant-park', { waitUntil: 'networkidle' });
+    await g.waitForTimeout(400);
+
+    const frames = await sample(g, '.rail__link[href="#salad-platters"]');
+    if (frames > 3) P(`rail anchors glide rather than teleport (${frames} sampled positions)`);
+    else F(`rail anchor jumped instantly — ${frames} distinct scroll position(s)`);
+
+    const landing = await g.evaluate(() => {
+      const el = document.getElementById('salad-platters');
+      const chrome = ['.mast', '.controls']
+        .map((s) => document.querySelector(s))
+        .filter(Boolean)
+        .reduce((h, e) => h + e.getBoundingClientRect().height, 0);
+      return { top: Math.round(el.getBoundingClientRect().top), chrome: Math.round(chrome) };
+    });
+    if (landing.top >= landing.chrome) {
+      P(`a jumped-to category clears the sticky chrome (lands at ${landing.top}, chrome is ${landing.chrome})`);
+    } else {
+      F(`a jumped-to category lands at ${landing.top} behind ${landing.chrome}px of sticky chrome`);
+    }
+
+    const mobileFrames = await (async () => {
+      const m = await browser.newPage({ viewport: { width: 390, height: 844 } });
+      await m.goto(BASE + '/menu/bryant-park', { waitUntil: 'networkidle' });
+      await m.waitForTimeout(400);
+      const n = await sample(m, '.railmob__link[href="#salad-platters"]');
+      await m.close();
+      return n;
+    })();
+    if (mobileFrames > 3) P(`mobile category chips glide too (${mobileFrames} sampled positions)`);
+    else F(`mobile category chip jumped instantly — ${mobileFrames} distinct position(s)`);
+    await g.close();
+
+    /* And somebody who has asked for less motion gets none of it. */
+    const rm = await browser.newPage({
+      viewport: { width: 1440, height: 900 },
+      reducedMotion: 'reduce',
+    });
+    await rm.goto(BASE + '/menu/bryant-park', { waitUntil: 'networkidle' });
+    await rm.waitForTimeout(400);
+    const rmFrames = await sample(rm, '.rail__link[href="#salad-platters"]');
+    if (rmFrames === 1) P('prefers-reduced-motion: the same anchor jumps instantly');
+    else F(`reduced motion still animated — ${rmFrames} distinct scroll positions`);
+    await rm.close();
   }
 
   /* ---- 9: keyboard ---------------------------------------------------- */

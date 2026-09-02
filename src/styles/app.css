@@ -76,23 +76,61 @@
   margin-left: auto;
 }
 
+/* Ordering mode: the store block sits beside the wordmark, divided by a
+   hairline, in place of the site nav. Hidden on a narrow phone — the control
+   bar underneath already carries the working controls, and the store name is
+   repeated in the drawer. */
 .mast__store {
   display: none;
   flex-direction: column;
-  text-decoration: none;
-  text-align: right;
-  line-height: 1.2;
-}
-
-.mast__store-label {
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
+  gap: 1px;
+  min-width: 0;
+  padding-left: 18px;
+  margin-left: 4px;
+  border-left: 1px solid var(--line);
 }
 
 .mast__store-name {
   font-size: var(--fs-sm);
   font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mast__store-change {
+  font-size: var(--fs-xs);
+  font-weight: 600;
   color: var(--tomato-ink);
+  text-decoration: none;
+}
+
+.mast__store-change:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 701px) {
+  .mast__store {
+    display: flex;
+  }
+}
+
+/* The ordering masthead uses the browse screen's wider measure so the wordmark
+   lines up with the rail below it. */
+.mast--order .mast__inner {
+  /* Same measure as every other masthead — see --shell. The artifact's
+     ordering masthead is 66px, and 74px from 900px up: four pixels shorter
+     than the marketing one, with a wider 18px gap because the store block
+     needs air either side of its divider rule. */
+  gap: 18px;
+  height: 66px;
+}
+
+@media (min-width: 900px) {
+  .mast--order .mast__inner {
+    height: 74px;
+  }
 }
 
 .mast__burger {
@@ -638,63 +676,6 @@
   margin: 0;
 }
 
-/* ==========================================================================
-   Menu bar (location + headcount)
-   ========================================================================== */
-
-.menubar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
-  padding-top: var(--s-4);
-  padding-bottom: var(--s-4);
-}
-
-.menubar__inner {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-4);
-}
-
-.menubar__back {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap);
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-/* This is an <h1>, so the heading defaults are reset back to bar-sized here and
-   the display treatment is put on .menubar__name instead. */
-.menubar__store {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  flex-wrap: wrap;
-  margin: 0;
-  font-family: var(--text);
-  font-size: var(--fs-body);
-  font-weight: 400;
-  letter-spacing: normal;
-  line-height: var(--lh-body);
-}
-
-.menubar__name {
-  font-family: var(--display);
-  font-size: var(--fs-h3);
-  font-weight: 600;
-  letter-spacing: var(--tracking-tight);
-}
-
-.menubar__addr {
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-}
-
-.menubar__warn {
-  margin-top: var(--s-4);
-}
-
 .guests {
   display: flex;
   align-items: center;
@@ -716,11 +697,15 @@
   overflow: hidden;
 }
 
+/* background-COLOR throughout this component, never the `background`
+   shorthand: the shorthand resets background-clip, and the control-bar variant
+   relies on a content-box clip to draw a 36px circle inside a 44px target.
+   A shorthand in a higher-specificity state rule silently undid it. */
 .guests__step {
   width: var(--tap);
   height: var(--tap);
   border: 0;
-  background: none;
+  background-color: transparent;
   cursor: pointer;
   font-size: var(--fs-h3);
   line-height: 1;
@@ -728,7 +713,7 @@
 }
 
 .guests__step:hover:not(:disabled) {
-  background: var(--sunken);
+  background-color: var(--sunken);
   color: var(--tomato-ink);
 }
 
@@ -761,157 +746,6 @@
 .guests__input:focus {
   outline: none;
   box-shadow: var(--ring);
-}
-
-/* ==========================================================================
-   Menu layout
-   ========================================================================== */
-
-.layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--s-6);
-  padding-top: var(--s-6);
-  padding-bottom: var(--s-16);
-}
-
-/* Category rail: a horizontal scroller on phones, a sticky column on desktop. */
-.rail {
-  position: sticky;
-  top: var(--header-h);
-  z-index: 40;
-  margin-left: calc(var(--gutter) * -1);
-  margin-right: calc(var(--gutter) * -1);
-  padding-top: var(--s-2);
-  padding-bottom: var(--s-2);
-  background: var(--mast);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--line);
-}
-
-.rail__list {
-  display: flex;
-  gap: var(--s-2);
-  overflow-x: auto;
-  scrollbar-width: none;
-  list-style: none;
-  margin: 0;
-  padding: 0 var(--gutter);
-  scroll-snap-type: x proximity;
-}
-
-.rail__list::-webkit-scrollbar {
-  display: none;
-}
-
-.rail__link {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s-2);
-  min-height: 38px;
-  padding: 0 var(--s-4);
-  border-radius: var(--r-pill);
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink-2);
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-  scroll-snap-align: start;
-}
-
-.rail__link--on {
-  background: var(--tomato-tint);
-  border-color: var(--tomato);
-  color: var(--tomato-ink);
-}
-
-.rail__count {
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-}
-
-.rail__link--on .rail__count {
-  color: var(--tomato-ink);
-}
-
-/* ---- Tools --------------------------------------------------------------- */
-
-.tools {
-  display: grid;
-  gap: var(--s-3);
-  margin-bottom: var(--s-3);
-}
-
-.tools__filters {
-  display: flex;
-  gap: var(--s-2);
-  flex-wrap: wrap;
-}
-
-.chip {
-  min-height: var(--tap);
-  padding: 0 var(--s-4);
-  border-radius: var(--r-pill);
-  border: 1px solid var(--line-strong);
-  background: var(--surface);
-  color: var(--ink-2);
-  font-family: var(--text);
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.chip--on {
-  background: var(--tomato);
-  border-color: var(--tomato);
-  color: var(--on-tomato);
-}
-
-.tools__result {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-  margin-bottom: var(--s-5);
-}
-
-/* ---- Category + cards ---------------------------------------------------- */
-
-.cat {
-  scroll-margin-top: calc(var(--header-h) + 60px);
-  margin-bottom: var(--s-12);
-}
-
-.cat__head {
-  display: flex;
-  align-items: baseline;
-  gap: var(--s-3);
-  flex-wrap: wrap;
-  padding-bottom: var(--s-3);
-  border-bottom: 2px solid var(--line-strong);
-  margin-bottom: var(--s-5);
-}
-
-.cat__head h2 {
-  margin: 0;
-}
-
-.cat__note {
-  margin: 0;
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-}
-
-.cards {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  /* Container-driven, not viewport-driven: the menu column is flanked by a rail
-     and a summary, so a viewport breakpoint gets its width badly wrong. */
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 268px), 1fr));
 }
 
 .card2 {
@@ -1035,93 +869,6 @@
   margin: var(--s-5) 0;
 }
 
-/* ---- Sticky summary ------------------------------------------------------ */
-
-.summary {
-  display: none;
-}
-
-.summary__inner {
-  position: sticky;
-  top: calc(var(--header-h) + var(--s-4));
-  padding: var(--s-5);
-}
-
-.summary__h {
-  font-family: var(--display);
-  font-size: var(--fs-h3);
-  margin-bottom: var(--s-4);
-}
-
-.summary__empty {
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-  margin: 0;
-}
-
-.summary__list {
-  list-style: none;
-  margin: 0 0 var(--s-4);
-  padding: 0;
-}
-
-.summary__line {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: start;
-  gap: var(--s-2);
-  padding: var(--s-3) 0;
-  border-bottom: 1px solid var(--line);
-  font-size: var(--fs-sm);
-}
-
-.summary__name {
-  font-weight: 700;
-}
-
-.summary__qty {
-  display: block;
-  font-weight: 400;
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-}
-
-.summary__amt {
-  font-weight: 700;
-}
-
-.summary__x {
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: var(--r-pill);
-  background: var(--sunken);
-  color: var(--ink-2);
-  cursor: pointer;
-  font-size: var(--fs-body);
-  line-height: 1;
-}
-
-.summary__x:hover {
-  background: var(--tomato-tint);
-  color: var(--tomato-ink);
-}
-
-.summary__total {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--display);
-  font-size: var(--fs-h3);
-  font-weight: 600;
-  margin-bottom: var(--s-2);
-}
-
-.summary__tax {
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-  margin-bottom: var(--s-4);
-}
-
 /* ==========================================================================
    Item configurator
    ========================================================================== */
@@ -1152,100 +899,6 @@
 
 .config__head h1 {
   margin-top: var(--s-3);
-}
-
-.group {
-  border: 1px solid var(--line);
-  border-radius: var(--r);
-  background: var(--surface);
-  padding: var(--s-5);
-  margin: 0 0 var(--s-5);
-}
-
-.group__legend {
-  display: flex;
-  align-items: baseline;
-  gap: var(--s-3);
-  flex-wrap: wrap;
-  padding: 0;
-  margin-bottom: var(--s-4);
-}
-
-.group__title {
-  font-family: var(--display);
-  font-size: var(--fs-h3);
-  font-weight: 600;
-}
-
-.group__rule {
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-caps);
-  color: var(--ink-3);
-}
-
-.group__rule--ok {
-  color: var(--basil);
-}
-
-.group__req {
-  color: var(--tomato-ink);
-}
-
-.group__note {
-  margin-bottom: var(--s-4);
-}
-
-.group__max {
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-  margin: var(--s-3) 0 0;
-}
-
-.opts {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--s-2);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.opt {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  min-height: var(--tap);
-  padding: var(--s-2) var(--s-4);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: var(--cream);
-  cursor: pointer;
-  font-size: var(--fs-sm);
-  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
-}
-
-.opt:hover {
-  border-color: var(--line-strong);
-}
-
-.opt--on {
-  border-color: var(--tomato);
-  background: var(--tomato-tint);
-  font-weight: 700;
-}
-
-.opt--off {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.opt input {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--tomato);
-  flex-shrink: 0;
 }
 
 .config__box {
@@ -1529,10 +1182,15 @@
   border-top: 1px solid var(--line-strong);
 }
 
+/* `max-width: none` because this is a <p> being used as a layout row, and the
+   global prose measure (68ch) caps it. On a phone 68ch is wider than the
+   screen so nothing showed; at 1024 the row stopped at 492px and the total
+   floated into the middle of the bar instead of sitting at its right edge. */
 .abar__running {
   display: flex;
   justify-content: space-between;
   gap: var(--s-3);
+  max-width: none;
   margin: 0 0 var(--s-2);
   font-size: var(--fs-xs);
   color: var(--ink-2);
@@ -1717,7 +1375,6 @@
 
 @media (min-width: 600px) {
   .picker__grid,
-  .cards,
   .steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1766,12 +1423,23 @@
     display: none;
   }
 
-  .mast__store {
-    display: flex;
+  /* The ordering masthead has no nav to make room for, so its single button
+     never needs to collapse. */
+  .mast--order .mast__cta {
+    display: inline-flex;
   }
 
   .abar {
     display: none;
+  }
+
+  /* ...except on the browse screen, where the running total lives in the
+     summary column — and that column does not appear until 1240. Between 900
+     and 1240 the desktop rule hid the action bar while the summary was still
+     hidden too, so a tablet-landscape user could fill a basket with no total
+     anywhere on the page. The bar stays until the summary takes over. */
+  .abar--menu {
+    display: block;
   }
 
   .foot {
@@ -1790,58 +1458,6 @@
 
   .split--flip .split__figure {
     order: 2;
-  }
-
-  .menubar__inner {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  /* rail | menu | summary */
-  /* No `align-items: start` here. It shrink-wraps the rail and summary cells to
-     their content height, and a position:sticky child can only stick within its
-     own container — so both sidebars scroll away a few hundred pixels into a
-     76-item menu. Default stretch makes each cell the full row height. */
-  .layout {
-    grid-template-columns: 210px minmax(0, 1fr);
-    gap: var(--s-8);
-  }
-
-  /* Sticky moves to .rail__inner: the grid cell is stretched to the full row
-     height so the summary can stick, and a full-height element has nowhere to
-     travel. Same pattern as .summary / .summary__inner. */
-  .rail {
-    position: static;
-    margin: 0;
-    padding: 0;
-    background: none;
-    backdrop-filter: none;
-    border: 0;
-  }
-
-  .rail__inner {
-    position: sticky;
-    top: calc(var(--header-h) + var(--s-4));
-  }
-
-  .rail__list {
-    flex-direction: column;
-    gap: var(--s-1);
-    overflow: visible;
-    padding: 0;
-  }
-
-  .rail__link {
-    justify-content: space-between;
-    width: 100%;
-    border-color: transparent;
-    background: none;
-  }
-
-  .rail__link--on {
-    background: var(--tomato-tint);
-    border-color: var(--tomato-tint);
   }
 
   .config {
@@ -1871,16 +1487,6 @@
     gap: 64px;
     padding-top: 76px;
     padding-bottom: 84px;
-  }
-}
-
-@media (min-width: 1120px) {
-  .layout {
-    grid-template-columns: 200px minmax(0, 1fr) 320px;
-  }
-
-  .summary {
-    display: block;
   }
 }
 
@@ -2359,602 +1965,6 @@
   justify-content: center;
 }
 
-/* ---- Store bar (menu) ------------------------------------------------------ */
-
-.storebar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
-}
-
-.storebar__in {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-4);
-  flex-wrap: wrap;
-  padding-top: var(--s-4);
-  padding-bottom: var(--s-4);
-}
-
-.storebar__store {
-  display: flex;
-  align-items: baseline;
-  gap: var(--s-2);
-  flex-wrap: wrap;
-  margin: 0;
-  font-family: var(--text);
-  font-size: var(--fs-body);
-  font-weight: 400;
-  letter-spacing: normal;
-  line-height: var(--lh-body);
-}
-
-.storebar__name {
-  font-family: var(--display);
-  font-size: var(--fs-h3);
-  font-weight: 600;
-  letter-spacing: var(--tracking-tight);
-}
-
-.storebar__addr {
-  color: var(--ink-3);
-  font-size: var(--fs-sm);
-}
-
-.storebar__links {
-  display: flex;
-  align-items: center;
-  gap: var(--s-4);
-  margin: 0;
-}
-
-.storebar__link {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap);
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.menubar__in {
-  display: flex;
-  align-items: center;
-  gap: var(--s-4);
-  flex-wrap: wrap;
-}
-
-.menubar__in .tools__search {
-  flex: 1 1 200px;
-  min-width: 0;
-}
-
-/* ---- Category rail head ------------------------------------------------------ */
-
-.rail__head {
-  font-family: var(--text);
-  font-size: var(--fs-xs);
-  font-weight: 800;
-  letter-spacing: var(--tracking-caps);
-  text-transform: uppercase;
-  color: var(--ink-3);
-  margin-bottom: var(--s-3);
-  display: none;
-}
-
-/* ---- Badges ------------------------------------------------------------------ */
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--s-1) var(--s-2);
-  border-radius: var(--r-sm);
-  font-size: var(--fs-xs);
-  font-weight: 800;
-  letter-spacing: var(--tracking-caps);
-  text-transform: uppercase;
-  white-space: nowrap;
-  background: var(--sunken);
-  border: 1px solid var(--line);
-  color: var(--ink-2);
-}
-
-.badge--pop {
-  background: var(--tomato-tint);
-  border-color: var(--tomato-tint);
-  color: var(--tomato-ink);
-}
-
-.badge--veg {
-  background: var(--basil-tint);
-  border-color: var(--basil-tint);
-  color: var(--basil);
-}
-
-.badge--min {
-  background: var(--honey-tint);
-  border-color: var(--honey);
-  color: var(--honey-ink);
-}
-
-/* ---- Item card ---------------------------------------------------------------- */
-
-.item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
-  height: 100%;
-  padding: var(--s-5);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r);
-  transition: border-color var(--dur) var(--ease);
-}
-
-.item:hover {
-  border-color: var(--line-strong);
-}
-
-/* Wraps rather than overlaps: at a narrow card width a long name and two
-   badges cannot share one line, and flex will happily let them collide. */
-.item__top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--s-2) var(--s-3);
-  flex-wrap: wrap;
-}
-
-.item__name {
-  margin: 0;
-  font-size: var(--fs-h3);
-  flex: 1 1 60%;
-}
-
-/* flex-shrink:0 on a WRAPPING container is a contradiction: it refuses to
-   narrow, so two badges force the whole card wider than its grid track and the
-   page scrolls sideways. Let it shrink and wrap. */
-.item__badges {
-  display: flex;
-  gap: var(--s-1);
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  min-width: 0;
-}
-
-.item__name {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.item__desc {
-  margin: 0;
-  font-size: var(--fs-sm);
-  color: var(--ink-2);
-  line-height: 1.5;
-}
-
-.item__rule {
-  margin: 0;
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  letter-spacing: var(--tracking-caps);
-  text-transform: uppercase;
-  color: var(--tomato-ink);
-}
-
-.item__flag {
-  margin: 0;
-  padding: var(--s-2) var(--s-3);
-  border-radius: var(--r-sm);
-  background: var(--honey-tint);
-  border: 1px solid var(--honey);
-  color: var(--honey-ink);
-  font-size: var(--fs-xs);
-}
-
-.item__price {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--s-3);
-  margin-top: auto;
-  padding-top: var(--s-3);
-  border-top: 1px solid var(--line);
-}
-
-.item__unit strong {
-  font-family: var(--display);
-  font-size: var(--fs-h3);
-}
-
-.item__unit em {
-  display: block;
-  font-style: normal;
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-}
-
-.item__line {
-  display: block;
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  color: var(--basil);
-}
-
-.add {
-  min-height: var(--tap);
-  padding: 0 var(--s-5);
-  border: 1px solid var(--tomato);
-  border-radius: var(--r-pill);
-  background: var(--tomato);
-  color: var(--on-tomato);
-  font-family: var(--text);
-  font-size: var(--fs-sm);
-  font-weight: 800;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.add:hover {
-  background: var(--tomato-deep);
-  border-color: var(--tomato-deep);
-}
-
-/* ---- Summary additions --------------------------------------------------------- */
-
-.summary__meta {
-  margin: 0 0 var(--s-4);
-  font-size: var(--fs-sm);
-  font-weight: 700;
-}
-
-.summary__meta span {
-  display: block;
-  font-weight: 400;
-  color: var(--ink-3);
-}
-
-.summary__line--flat {
-  grid-template-columns: 1fr auto;
-}
-
-.btn--off {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-/* ---- Item sheet ------------------------------------------------------------------ */
-
-.sheet__scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  background: var(--scrim);
-}
-
-.sheet {
-  position: fixed;
-  z-index: 100;
-  inset: auto 0 0 0;
-  display: flex;
-  flex-direction: column;
-  max-height: 92dvh;
-  background: var(--surface);
-  border-top: 1px solid var(--line-strong);
-  border-radius: var(--r-lg) var(--r-lg) 0 0;
-  box-shadow: var(--lift-lg);
-}
-
-.sheet__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--s-4);
-  padding: var(--s-5);
-  border-bottom: 1px solid var(--line);
-}
-
-.sheet__head h2 {
-  margin: var(--s-2) 0 var(--s-1);
-}
-
-.sheet__badges {
-  display: flex;
-  gap: var(--s-2);
-  flex-wrap: wrap;
-}
-
-.sheet__desc {
-  margin: 0;
-  font-size: var(--fs-sm);
-  color: var(--ink-2);
-}
-
-.sheet__x {
-  flex-shrink: 0;
-  width: var(--tap);
-  height: var(--tap);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  color: var(--ink);
-  font-size: var(--fs-h3);
-  line-height: 1;
-  cursor: pointer;
-}
-
-.sheet__x:hover {
-  background: var(--tomato-tint);
-  color: var(--tomato-ink);
-}
-
-.sheet__body {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--s-5);
-}
-
-.sheet__foot {
-  padding: var(--s-4) var(--s-5) calc(var(--s-4) + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--line);
-  background: var(--sunken);
-}
-
-.sheet__missing {
-  margin: 0 0 var(--s-3);
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  color: var(--tomato-ink);
-}
-
-.sheet__money {
-  display: flex;
-  align-items: baseline;
-  gap: var(--s-3);
-  margin-bottom: var(--s-3);
-}
-
-.sheet__money strong {
-  font-family: var(--display);
-  font-size: var(--fs-h2);
-}
-
-.sheet__money span {
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-}
-
-.sheet__actions {
-  display: flex;
-  gap: var(--s-3);
-  align-items: center;
-}
-
-.sheet__add {
-  flex: 1;
-}
-
-.group__count {
-  font-size: var(--fs-xs);
-  font-weight: 800;
-  letter-spacing: var(--tracking-caps);
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.group__rule {
-  margin: 0 0 var(--s-4);
-  font-size: var(--fs-sm);
-  color: var(--ink-2);
-}
-
-/* ---- Checkout accordion ------------------------------------------------------------ */
-
-.co__intro {
-  margin-bottom: var(--s-6);
-}
-
-.lock {
-  display: flex;
-  gap: var(--s-3);
-  padding: var(--s-4);
-  margin-bottom: var(--s-6);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: var(--sunken);
-  font-size: var(--fs-sm);
-}
-
-.lock strong {
-  display: block;
-}
-
-.lock span span {
-  color: var(--ink-2);
-}
-
-.lock__i,
-.hold__i {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  margin-top: 2px;
-  border-radius: var(--r-pill);
-  border: 2px solid var(--tomato-ink);
-}
-
-.steps3 {
-  display: grid;
-  gap: var(--s-3);
-}
-
-.step3 {
-  border: 1px solid var(--line);
-  border-radius: var(--r);
-  background: var(--surface);
-  overflow: hidden;
-}
-
-.step3--open {
-  border-color: var(--tomato);
-  box-shadow: var(--lift-sm);
-}
-
-.step3__h {
-  margin: 0;
-  font-family: var(--text);
-}
-
-.st-head {
-  display: flex;
-  align-items: center;
-  gap: var(--s-4);
-  width: 100%;
-  min-height: 68px;
-  padding: var(--s-3) var(--s-5);
-  border: 0;
-  background: none;
-  cursor: pointer;
-  text-align: left;
-  font-family: var(--text);
-}
-
-.st-n {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--r-pill);
-  background: var(--sunken);
-  border: 1px solid var(--line);
-  font-size: var(--fs-sm);
-  font-weight: 800;
-  color: var(--ink-2);
-}
-
-.step3--open .st-n {
-  background: var(--tomato);
-  border-color: var(--tomato);
-  color: var(--on-tomato);
-}
-
-.st-t {
-  flex: 1;
-  min-width: 0;
-}
-
-.st-t strong {
-  display: block;
-  font-family: var(--display);
-  font-size: var(--fs-h3);
-  font-weight: 600;
-}
-
-.st-sum {
-  display: block;
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.st-edit {
-  flex: none;
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  color: var(--tomato-ink);
-}
-
-.st-body {
-  padding: 0 var(--s-5) var(--s-5);
-  border-top: 1px solid var(--line);
-  padding-top: var(--s-5);
-}
-
-.stepfoot {
-  margin-top: var(--s-5);
-}
-
-.saved {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  width: 100%;
-  padding: var(--s-4);
-  margin-bottom: var(--s-3);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r);
-  background: var(--surface);
-  cursor: pointer;
-  text-align: left;
-  font-family: var(--text);
-}
-
-.saved--on {
-  border-color: var(--tomato);
-  background: var(--tomato-tint);
-}
-
-.saved strong {
-  display: block;
-  font-size: var(--fs-sm);
-}
-
-.saved span span {
-  display: block;
-  font-size: var(--fs-xs);
-  color: var(--ink-2);
-}
-
-.saved__mk {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--r-pill);
-  border: 2px solid var(--line-strong);
-}
-
-.saved--on .saved__mk {
-  border-color: var(--tomato);
-  background: var(--tomato);
-  box-shadow: inset 0 0 0 3px var(--surface);
-}
-
-.pm {
-  padding: var(--s-4);
-  margin-bottom: var(--s-4);
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--r-sm);
-}
-
-.hold {
-  display: flex;
-  gap: var(--s-3);
-  padding: var(--s-4);
-  border-radius: var(--r-sm);
-  background: var(--basil-tint);
-  border: 1px solid var(--basil);
-  color: var(--basil);
-  font-size: var(--fs-sm);
-}
-
-.hold strong {
-  display: block;
-}
-
-.hold .hold__i {
-  border-color: var(--basil);
-}
-
-.tot__row--pending dd {
-  color: var(--honey-ink);
-  font-weight: 700;
-}
-
 /* ---- Order management ---------------------------------------------------------------- */
 
 .om__who {
@@ -3125,14 +2135,6 @@
   .secs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .sheet {
-    inset: auto var(--s-8) var(--s-8) auto;
-    width: min(560px, calc(100vw - var(--s-16)));
-    max-height: min(84dvh, 760px);
-    border-radius: var(--r-lg);
-    border: 1px solid var(--line-strong);
-  }
 }
 
 @media (min-width: 900px) {
@@ -3162,10 +2164,6 @@
     gap: 60px;
   }
 
-  .rail__head {
-    display: block;
-  }
-
   .chg__row {
     grid-template-columns: 1fr auto 100px;
   }
@@ -3175,8 +2173,1430 @@
   }
 }
 
-@media (min-width: 1120px) {
-  .sheet {
-    inset: auto var(--s-10) var(--s-10) auto;
+/* ==========================================================================
+   Menu browse — built to artifact 06cbed02
+
+   One block, deliberately. The previous build had these rules in three places
+   from three successive passes, which is exactly how the store picker's
+   catering copy rotted while the home copy was rebuilt. Everything the browse
+   screen needs is here, in the order the page renders it.
+   ========================================================================== */
+
+/* ---- Control bar ---------------------------------------------------------- */
+
+/* Sticky under the masthead. Sits on the page ground rather than a white band:
+   the cards below are white, and a white bar over white cards loses the edge
+   that tells you the bar is a fixed control surface. */
+/* `top` follows the ORDERING masthead's height (66px, 74px from 900px up),
+   not the marketing --header-h — the control bar only ever appears under the
+   ordering masthead, and offsetting it by the taller marketing height left a
+   4px strip of menu showing through above it as the page scrolled.
+
+   Written as a plain `.controls` rule with its own breakpoint. An earlier
+   attempt scoped it as `.mast--order + * .controls`, which raised the
+   specificity above the breakpoint override and pinned the bar at the mobile
+   66px on every width — the audit caught it, which is the point of the audit. */
+.controls {
+  position: sticky;
+  top: 66px;
+  z-index: 45;
+  background: var(--cream);
+  border-bottom: 1px solid var(--line);
+}
+
+@media (min-width: 900px) {
+  .controls {
+    top: 74px;
   }
+}
+
+.controls__in {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.ctl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  /* 6px on the right because the search capsule ends in a caret that wants to
+     run close to the edge. The guests capsule ends in a button and gets more
+     below. */
+  padding: 0 6px 0 var(--s-4);
+  background: var(--surface);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--r-pill);
+}
+
+.ctl > label {
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.ctl .search-ico {
+  color: var(--ink-3);
+  flex: none;
+  /* The artifact's own -4px: it pulls the magnifier back into the 10px gap so
+     the icon reads as part of the field's left padding rather than as a first
+     item sitting a full gap away from the caret. */
+  margin-right: -4px;
+}
+
+.ctl input[type='search'] {
+  width: 190px;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: var(--fs-sm);
+  color: var(--ink);
+}
+
+/* Room for a real query once the viewport can spare it. */
+@media (min-width: 1100px) {
+  .ctl input[type='search'] {
+    width: 250px;
+  }
+}
+
+.ctl input[type='search']::placeholder {
+  color: var(--ink-3);
+}
+
+.ctl input[type='search']:focus-visible {
+  outline: 0;
+}
+
+/* The focus ring belongs on the capsule, not on a borderless input inside it —
+   a ring drawn around the input alone floats in the middle of the pill.
+
+   `:has(:focus-visible)` rather than `:focus-within`: the latter matches any
+   focus, so clicking + with a mouse lit the whole capsule tomato and threw a
+   ring around it. A keyboard user needs to see where focus is; a mouse user
+   just pressed the thing and does not. */
+.ctl:has(:focus-visible) {
+  border-color: var(--tomato);
+  box-shadow: var(--ring);
+}
+
+.result-count {
+  margin: 0 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-ui);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chips {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 15px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-family: var(--text);
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.chip:hover {
+  border-color: var(--tomato);
+  color: var(--tomato-ink);
+}
+
+.chip--on {
+  background: var(--tomato);
+  border-color: var(--tomato);
+  color: var(--on-tomato);
+}
+
+/* ---- Layout --------------------------------------------------------------- */
+
+/* `align-items: start`, as the artifact has it.
+
+   An earlier pass removed this on the theory that shrink-wrapping the grid cell
+   leaves a sticky child nowhere to travel. That was wrong, and measuring the
+   artifact is what settled it: a sticky grid ITEM is positioned within its grid
+   AREA, which stays the full row height whatever the item's own box does. The
+   artifact's rail and summary stick correctly at 150px and so do these, with
+   sticky back on .rail and .summary directly and no wrapper elements. */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 28px;
+  padding-top: 26px;
+  padding-bottom: var(--s-16);
+}
+
+.layout > * {
+  min-width: 0;
+}
+
+/* ---- Category rail -------------------------------------------------------- */
+
+.rail {
+  display: none;
+}
+
+.rail__head,
+.summary__h {
+  font-family: var(--text);
+  font-size: var(--fs-3xs);
+  font-weight: 700;
+  line-height: var(--lh-body);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 var(--s-3);
+}
+
+.rail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rail__link {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--r-xs);
+  border-left: 3px solid transparent;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+}
+
+.rail__link:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.rail__link--on {
+  background: var(--tomato-tint);
+  border-left-color: var(--tomato);
+  color: var(--tomato-ink);
+}
+
+.rail__count {
+  font-style: normal;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+.rail__link--on .rail__count {
+  color: var(--tomato-ink);
+}
+
+/* Mobile categories: labelled chips with counts, scrolling horizontally.
+   The live site collapses this to an unlabelled beige bar; the artifact's
+   design note calls that out by name, so the labels are the requirement. */
+.railmob__list {
+  display: flex;
+  gap: var(--s-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  list-style: none;
+  margin: 0 0 var(--s-1);
+  padding: 0 0 var(--s-3);
+  scroll-snap-type: x proximity;
+}
+
+.railmob__list::-webkit-scrollbar {
+  display: none;
+}
+
+.railmob__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 15px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  scroll-snap-align: start;
+}
+
+.railmob__link--on {
+  background: var(--tomato);
+  border-color: var(--tomato);
+  color: var(--on-tomato);
+}
+
+.railmob__count {
+  font-style: normal;
+  font-size: var(--fs-2xs);
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Categories and cards -------------------------------------------------- */
+
+.cat {
+  margin-bottom: var(--s-10);
+  /* Clears the ordering masthead (75 with its rule) AND the sticky control bar
+     (77), which is 152 — so 150, the number the artifact uses for both this and
+     the sticky tops, actually parks the heading two pixels BEHIND the bar. The
+     sticky tops stay at the artifact's 150; this one gets the real total plus a
+     little air, because it is a destination rather than a position and a
+     heading that clearly clears the chrome is the whole point of the offset. */
+  --scroll-offset: 160px;
+  scroll-margin-top: var(--scroll-offset);
+}
+
+.cat__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-4);
+}
+
+.cat__head h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 60, 'SOFT' 42, 'WONK' 0;
+  font-weight: 700;
+  font-size: 1.65rem;
+  line-height: 1.1;
+  letter-spacing: -0.014em;
+}
+
+.cat__note {
+  font-size: var(--fs-ui);
+  color: var(--ink-2);
+}
+
+.items {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.items > li {
+  display: flex;
+}
+
+.item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: var(--s-5);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--lift);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+/* An item that is already on the order says so. Without this the only feedback
+   for "Add" is a number changing in a sidebar that does not exist on a phone. */
+.item--in {
+  border-color: var(--tomato);
+  box-shadow: 0 0 0 2px var(--tomato-tint), var(--lift);
+}
+
+.item h3 {
+  margin: 0;
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 30, 'SOFT' 40, 'WONK' 0;
+  font-weight: 700;
+  font-size: 1.1875rem;
+  line-height: 1.2;
+  letter-spacing: -0.008em;
+  overflow-wrap: anywhere;
+}
+
+.item .desc {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.item .choose {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+.item .flag {
+  margin: 0;
+  padding: 8px 11px;
+  border: 1px solid var(--honey);
+  border-radius: var(--r-xs);
+  background: var(--honey-tint);
+  color: var(--ink);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
+/* ---- Badges ---------------------------------------------------------------- */
+
+.badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* No `display` and no base border, both on purpose. The artifact's badge is a
+   plain <span> that the .badges flex row blockifies, and only two of the three
+   tones carry a rule — giving every badge a transparent border made the basil
+   one a pixel taller than the artifact's and boxed it differently. */
+.badge {
+  padding: 4px 9px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-3xs);
+  font-weight: 700;
+  line-height: var(--lh-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge--pop {
+  background: var(--honey-tint);
+  border: 1px solid var(--honey);
+  color: var(--ink);
+}
+
+.badge--veg {
+  background: var(--basil-tint);
+  color: var(--basil);
+}
+
+.badge--min {
+  background: var(--sunken);
+  border: 1px solid var(--line-strong);
+  color: var(--ink-3);
+}
+
+/* ---- Price row -------------------------------------------------------------- */
+
+/* margin-top:auto pins the price to the bottom of the card, so prices line up
+   across a row whatever the description length. */
+.price {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+}
+
+.price .unit {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.price .unit b {
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 30, 'SOFT' 40, 'WONK' 0;
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.price .unit em {
+  font-style: normal;
+  line-height: 1.2;
+}
+
+.price .line {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--basil);
+  font-variant-numeric: tabular-nums;
+}
+
+.act {
+  flex: none;
+}
+
+/* Outline, not solid. Solid would be the loudest element on the page repeated
+   76 times, and it would compete with the one real primary action — the
+   Continue button in the summary. */
+.add {
+  height: 42px;
+  padding: 0 18px;
+  border: 1px solid var(--tomato);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--tomato-ink);
+  font-family: var(--text);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.add:hover:not(:disabled) {
+  background: var(--tomato);
+  color: var(--on-tomato);
+}
+
+.add:disabled {
+  border-color: var(--line-strong);
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+.qty {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.qty button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--tomato);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--tomato-ink);
+  font-family: var(--text);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.qty button:hover {
+  background: var(--tomato);
+  color: var(--on-tomato);
+}
+
+.qty__n {
+  min-width: 30px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Order summary ---------------------------------------------------------- */
+
+.summary {
+  display: none;
+}
+
+.sum-card {
+  padding: var(--s-5);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--lift);
+}
+
+.sum-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin-bottom: var(--s-1);
+}
+
+.sum-head b {
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 40, 'SOFT' 40, 'WONK' 0;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.sum-guests {
+  margin: 0 0 14px;
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+}
+
+.lines {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  max-height: 44vh;
+  overflow-y: auto;
+}
+
+.lines li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  font-size: var(--fs-ui);
+  line-height: 1.35;
+}
+
+.lines .ln {
+  flex: 1;
+  min-width: 0;
+}
+
+.lines .ln b {
+  display: block;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.lines .ln span {
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+.lines .amt {
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.lines li.low .amt,
+.lines li.low .ln span {
+  color: var(--tomato-ink);
+}
+
+.lines .rm {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  margin: -4px -6px -4px 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 1.0625rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lines .rm:hover {
+  background: var(--tomato-tint);
+  color: var(--tomato-ink);
+}
+
+.sum-empty {
+  margin: 0 0 14px;
+  font-size: var(--fs-ui);
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+.sum-warn {
+  margin: 0 0 13px;
+  padding: 9px 11px;
+  border: 1px solid var(--tomato);
+  border-radius: var(--r-sm);
+  background: var(--tomato-tint);
+  color: var(--ink);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+
+.sum-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+}
+
+.sum-total b {
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 40, 'SOFT' 40, 'WONK' 0;
+  font-weight: 700;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The unanswered questions sit ABOVE the button, not in a footnote. Someone
+   about to commit is exactly who needs to know what is not yet settled. */
+.pending {
+  margin: 13px 0 0;
+  padding: 9px 11px;
+  border: 1px solid var(--honey);
+  border-radius: var(--r-sm);
+  background: var(--honey-tint);
+  color: var(--ink);
+  font-size: var(--fs-2xs);
+  line-height: 1.45;
+}
+
+/* ---- Breakpoints ------------------------------------------------------------ */
+
+@media (min-width: 640px) {
+  .items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Below this the search field and the guest field share a row and the filter
+   chips drop to their own scrolling line. */
+@media (max-width: 760px) {
+  .controls__in {
+    gap: var(--s-2);
+    padding-top: 11px;
+    padding-bottom: 11px;
+  }
+
+  /* A small flex-basis, not `auto`. With `auto` the search capsule took its
+     content width, filled the row on its own and pushed the guests capsule to
+     a row of its own — three rows and 175px of sticky chrome on a phone. A
+     100px basis lets both sit on the first row even at 320px, where the
+     guests capsule alone is 155px, and search still grows into whatever is
+     left over. */
+  .controls__in > .ctl:first-of-type {
+    flex: 1 1 100px;
+    min-width: 0;
+    padding-left: 14px;
+  }
+
+  .controls__in > .ctl:first-of-type input[type='search'] {
+    width: 100%;
+  }
+
+  .ctl--guests {
+    flex: none;
+    gap: 6px;
+    padding: 0 4px 0 12px;
+  }
+
+  /* Two rows, not three. Search and guests fill the first; the count and the
+     scrolling chips SHARE the second. At 320px a third row put the sticky
+     chrome at 254px — a third of the viewport gone before any food. */
+  .result-count {
+    order: 2;
+    flex: none;
+    margin: 0;
+  }
+
+  .chips {
+    order: 3;
+    flex: 1 1 100px;
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    margin-bottom: -2px;
+  }
+
+  .chips::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (min-width: 960px) {
+  .layout {
+    grid-template-columns: 186px minmax(0, 1fr);
+  }
+
+  .rail {
+    display: block;
+    position: sticky;
+    top: 150px;
+  }
+
+  .railmob {
+    display: none;
+  }
+}
+
+/* Three columns from 1200px up, on the shared --shell measure.
+
+   The artifact drew this at a 1360 container, giving 186 / 740 / 306. On the
+   shared 1240 the flanking columns keep their designed widths — a category
+   name and a summary line need what they need — and the middle absorbs the
+   difference, landing at 612 and two ~299px cards. Narrower than the
+   artifact's 363, and the deliberate cost of not having the masthead jump
+   width between the home page and this one. */
+@media (min-width: 1200px) {
+  .layout {
+    grid-template-columns: 186px minmax(0, 1fr) 306px;
+  }
+
+  .summary {
+    display: block;
+  }
+
+  /* The summary column is here; the bar's job is done. */
+  .abar--menu {
+    display: none;
+  }
+
+  .summary {
+    position: sticky;
+    top: 150px;
+  }
+}
+
+/* The artifact carries a three-column rule at 1500px. It is dead on arrival:
+   the shell caps at 1360, so the middle column stays 740px however wide the
+   window gets, and three tracks make 237px cards — narrower than the phone
+   layout's. Two columns at 363px is the widest this measure ever wants, so the
+   rule is deliberately not carried across. */
+
+/* The guest Stepper inside a control-bar Field: the capsule is already the
+   Field, so the Stepper drops its own border and fill and becomes the
+   artifact's two round buttons around a tabular value. Everywhere else
+   (item sheet, order management) it keeps its bordered pill. */
+.ctl .guests__control {
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  gap: 2px;
+}
+
+/* No outline on these at rest.
+
+   The artifact rings each of them in a hairline circle, which inside a
+   hairline capsule makes three concentric rounded outlines in the space of
+   200px — the ring, the capsule, and the pill radius all drawing the same
+   corner. It reads as a control assembled from parts rather than one object.
+
+   So the capsule is the only shape at rest and the glyphs sit inside it bare.
+   The circle comes back on hover and focus as a filled tint, which is a
+   clearer affordance than a permanent outline anyway: it appears where the
+   pointer is.
+
+   The BUTTON stays 44px — that is what a thumb hits and what an audit
+   measures — while the tint circle it paints is 36px. Extending a hit area
+   with a pseudo-element does not work: the pseudo-element is not the element,
+   so anything measuring the target still reads the smaller number. */
+.ctl .guests__step {
+  position: relative;
+  width: var(--tap);
+  height: var(--tap);
+  border: 0;
+  /* 44px of TARGET, 36px of visible circle. The padding plus content-box clip
+     shrinks only the painted background, so the thumb still gets the full
+     button while the hover circle keeps 6px of air inside a 48px capsule —
+     a 44px circle in a 48px capsule leaves two pixels and looks wedged. */
+  padding: 4px;
+  border-radius: 50%;
+  background-color: transparent;
+  background-clip: content-box;
+  color: var(--ink-2);
+  font-size: 1.05rem;
+  font-weight: 700;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+/* Colour, not opacity. The floor and the starting value are both 8, so the
+   minus is disabled the moment the page loads — and a ghosted glyph in the
+   resting state reads as something that failed to render rather than as a
+   limit. Matching it to the capsule's own hairline makes it plainly inactive
+   and still part of the object. */
+.ctl .guests__step:disabled {
+  color: var(--ink-off);
+  cursor: not-allowed;
+}
+
+/* The circle appears on hover and keyboard focus rather than sitting there
+   permanently — see the note above. The button is 44px, so is the circle;
+   drawing a smaller one with a pseudo-element meant fighting paint order for
+   no visible gain. */
+.ctl .guests__step:hover:not(:disabled),
+.ctl .guests__step:focus-visible {
+  /* background-COLOR, not the shorthand: `background:` resets background-clip
+     to border-box and the circle went back to filling all 44px. */
+  background-color: var(--tomato-tint);
+  color: var(--tomato-ink);
+}
+
+/* The guests capsule ends in a tappable glyph rather than a text caret, so it
+   carries a little more air on that edge than the search field does. */
+.ctl--guests {
+  padding-right: var(--s-2);
+}
+
+.ctl .guests__input {
+  width: 56px;
+  height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 1.0625rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+  .ctl--guests .guests__input {
+    width: 44px;
+    font-size: 1rem;
+  }
+}
+
+/* At 320px the "Guests" caption cannot share a row with the search field, and
+   a third row of sticky chrome costs a quarter of the viewport. The caption is
+   the part that goes: a − 12 + control beside a search box needs no title, and
+   the <label> stays in the accessibility tree (clipped, not display:none) so
+   the number input keeps its name. */
+@media (max-width: 419px) {
+  .ctl--guests > label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* The action bar was built for a phone. It now also covers the browse screen
+   from 900 to 1240 — the band where the summary column has not appeared yet —
+   and with the extra room its running line should stay on one line rather than
+   breaking "1 item on this order" mid-phrase. */
+@media (min-width: 700px) {
+  .abar__running {
+    white-space: nowrap;
+  }
+}
+
+/* ==========================================================================
+   Item configurator — built to artifact 84ab8175
+
+   The sheet is a dialog centred over the menu, not a panel parked in a corner.
+   The build previously pinned it bottom-right, which put the thing you are
+   reading at the edge of the screen with the list you left behind filling the
+   middle — and left its rounded bottom corners visibly squared off, because
+   the footer's own fill painted over them with nothing clipping it.
+
+   Everything below is the artifact's, including the two fixes: a flex scrim
+   that centres the sheet, and `overflow: hidden` so the sheet's radius clips
+   whatever is inside it.
+   ========================================================================== */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  /* Bottom-anchored on a phone — a full-width sheet you can thumb — and
+     centred once there is room for a dialog. */
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  background: var(--scrim);
+}
+
+@media (min-width: 760px) {
+  .scrim {
+    align-items: center;
+    padding: 28px;
+  }
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 660px;
+  max-height: 100dvh;
+  background: var(--surface);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--r-dialog) var(--r-dialog) 0 0;
+  box-shadow: var(--lift-hi);
+  /* The fix for the clipped corners. The footer has its own background and
+     square corners; without a clip on the parent it paints straight over the
+     sheet's radius and the bottom of the dialog reads as a rectangle. The
+     body's own overflow-y still scrolls inside this. */
+  overflow: hidden;
+}
+
+@media (min-width: 760px) {
+  .sheet {
+    border-radius: var(--r-dialog);
+    max-height: 88vh;
+  }
+}
+
+/* ---- Head ------------------------------------------------------------------ */
+
+.sheet__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: none;
+  padding: var(--s-5) var(--s-5) var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+
+@media (min-width: 760px) {
+  .sheet__head {
+    padding: var(--s-6) 26px 18px;
+  }
+}
+
+.sheet__title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.sheet__head h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 60, 'SOFT' 42, 'WONK' 0;
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  letter-spacing: -0.014em;
+}
+
+.sheet__desc {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+.sheet__badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sheet__x {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 50%;
+  background: transparent;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sheet__x:hover {
+  border-color: var(--tomato);
+  color: var(--tomato-ink);
+}
+
+/* ---- Body ------------------------------------------------------------------ */
+
+.sheet__body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--s-1) var(--s-5) var(--s-5);
+}
+
+@media (min-width: 760px) {
+  .sheet__body {
+    padding: var(--s-1) 26px 22px;
+  }
+}
+
+/* ---- Option groups --------------------------------------------------------- */
+
+/* Hairline-separated bands, not boxes. A card per group inside a card is one
+   nesting level too many for a dialog this size. */
+.group {
+  padding: var(--s-5) 0;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.group:last-of-type {
+  border-bottom: 0;
+}
+
+.group__legend {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 0;
+  margin-bottom: var(--s-1);
+}
+
+.group__title {
+  font-family: var(--text);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  line-height: 1.3;
+}
+
+/* The rule's STATE, as a pill: tomato while the group still owes an answer,
+   basil the moment it is satisfied. A counter that only ever reads "1 of 3" in
+   grey makes you work out for yourself whether that is enough. */
+.group__count {
+  padding: 3px var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--tomato-tint);
+  color: var(--tomato-ink);
+  font-size: var(--fs-3xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.group__count--done {
+  background: var(--basil-tint);
+  color: var(--basil);
+}
+
+.group__rule {
+  margin: 0 0 13px;
+  font-size: var(--fs-ui);
+  color: var(--ink-2);
+}
+
+.group__note {
+  margin-bottom: var(--s-4);
+}
+
+.opts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 560px) {
+  .opts {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.opt {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 50px;
+  padding: var(--s-3) 14px;
+  border: 1.5px solid var(--line);
+  /* The artifact says 11px; snapped to the 10px token. One pixel on a tile
+     corner is invisible and the scale stays closed. */
+  border-radius: var(--r-sm);
+  background: var(--sunken);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.opt:hover {
+  border-color: var(--line-strong);
+}
+
+/* The real input stays in the DOM and in the tab order — it is what a screen
+   reader announces and what the keyboard toggles. It is only made invisible,
+   so the tick can be drawn to the design. `display: none` would have removed
+   it from both. */
+.opt input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.opt__mark {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--line-strong);
+  background: transparent;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+/* Round for a one-of-many choice, square for a many-of-many one. The shape is
+   the affordance: it says whether picking this un-picks the last one. */
+.opt--radio .opt__mark {
+  border-radius: 50%;
+}
+
+.opt--check .opt__mark {
+  border-radius: var(--r-2xs);
+}
+
+.opt__mark svg {
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.opt--on {
+  border-color: var(--tomato);
+  background: var(--tomato-tint);
+}
+
+.opt--on .opt__mark {
+  border-color: var(--tomato);
+  background: var(--tomato);
+  color: var(--on-tomato);
+}
+
+.opt--on .opt__mark svg {
+  opacity: 1;
+}
+
+.opt--off {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.opt--off:hover {
+  border-color: var(--line);
+}
+
+/* The focus ring belongs on the label, because the input it would otherwise
+   land on is a clipped pixel. */
+.opt:has(:focus-visible) {
+  outline: 2px solid var(--tomato-ink);
+  outline-offset: 2px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* ---- Foot ------------------------------------------------------------------ */
+
+.sheet__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px var(--s-5) calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
+  background: var(--cream);
+}
+
+@media (min-width: 760px) {
+  .sheet__foot {
+    padding: var(--s-4) 26px;
+  }
+}
+
+/* order:-1 puts it above the row it belongs to without moving it in the DOM,
+   so the reading order stays "what is missing, then the total, then Add". */
+.sheet__missing {
+  flex: 1 0 100%;
+  order: -1;
+  /* This is a <p> used as a flex ROW, so the global 68ch prose measure caps it
+     — the same trap the action bar's running line fell into. Without this the
+     block stops at ~500px and the total sits beside it instead of below. */
+  max-width: none;
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--tomato);
+  border-radius: var(--r-sm);
+  background: var(--tomato-tint);
+  color: var(--ink);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
+.sheet__money {
+  flex: 1;
+  min-width: 0;
+}
+
+.sheet__money strong {
+  display: block;
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 40, 'SOFT' 40, 'WONK' 0;
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet__money span {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+}
+
+/* The quantity stepper in the footer: a --sunken pill with round glyph
+   buttons, the artifact's own treatment.
+
+   The artifact draws those buttons at 40px inside a 4px-padded pill. 40 is
+   under the 44px target floor, so the same trick as the control bar applies —
+   the BUTTON is 44 and the painted circle is 40, via a 2px pad and a
+   content-box clip. The pill's own padding drops to 2px to compensate, so the
+   assembled control is the same height the artifact draws. */
+.sheet__actions .guests__control {
+  gap: var(--s-1);
+  padding: 2px;
+  background: var(--sunken);
+  border: 1.5px solid var(--line-strong);
+  overflow: visible;
+}
+
+.sheet__actions .guests__step {
+  width: var(--tap);
+  height: var(--tap);
+  padding: 2px;
+  border-radius: 50%;
+  background-color: transparent;
+  background-clip: content-box;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.sheet__actions .guests__step:hover:not(:disabled) {
+  background-color: var(--tomato-tint);
+  color: var(--tomato-ink);
+}
+
+.sheet__actions .guests__step:disabled {
+  color: var(--ink-off);
+  cursor: not-allowed;
+}
+
+.sheet__actions .guests__input {
+  width: 40px;
+  height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-weight: 700;
+}
+
+/* Below this the total wraps to its own line and Add takes the width, so the
+   two never squeeze each other into two-line labels. */
+@media (max-width: 460px) {
+  .sheet__foot {
+    gap: var(--s-2) 10px;
+  }
+
+  .sheet__money {
+    flex: 1 0 100%;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .sheet__money strong {
+    font-size: 1.375rem;
+  }
+
+  .sheet__money span {
+    white-space: nowrap;
+  }
+
+  .sheet__actions {
+    flex: 1;
+  }
+
+  .sheet__add {
+    flex: 1;
+  }
+}
+
+/* The notes field, styled to the artifact: a sunken well with a hairline that
+   goes tomato on focus, sized to invite a sentence rather than a word. */
+.group .textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 13px 14px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--r-tab);
+  background: var(--sunken);
+  font-family: var(--text);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--ink);
+  resize: vertical;
+}
+
+.group .textarea:focus {
+  outline: 0;
+  border-color: var(--tomato);
+}
+
+.group .textarea:focus-visible {
+  outline: 0;
+  box-shadow: var(--ring);
 }

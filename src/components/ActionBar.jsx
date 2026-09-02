@@ -17,9 +17,10 @@
 
    What ships instead is this: one fixed bar, always the single most useful
    action for where the person is, always carrying the running order state so
-   they never wonder what they have. It is mobile-only; on desktop the same
-   information lives in the sticky order summary beside the menu, where there is
-   room for it. */
+   they never wonder what they have. It hands over to the sticky order summary
+   beside the menu as soon as that column exists — `variant="menu"` keeps it
+   alive until 1240px rather than 900px, because between those two widths the
+   summary is not on the page yet and the total would otherwise be nowhere. */
 
 import { Link } from 'react-router-dom';
 import { money } from '../lib/format.js';
@@ -33,6 +34,7 @@ export default function ActionBar({
   disabled = false,
   total,
   count,
+  variant,
 }) {
   const label = actionLabel || 'Continue';
 
@@ -47,7 +49,11 @@ export default function ActionBar({
   );
 
   return (
-    <div className="abar" role="region" aria-label="Order actions">
+    <div
+      className={`abar${variant ? ` abar--${variant}` : ''}`}
+      role="region"
+      aria-label="Order actions"
+    >
       {typeof count === 'number' && (
         <p className="abar__running">
           <span>

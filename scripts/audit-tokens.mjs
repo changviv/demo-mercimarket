@@ -26,6 +26,48 @@ function walk(dir, out = []) {
 
 const files = walk('src');
 const styles = files.filter((f) => f.endsWith('.css'));
+
+/* Brace balance, per stylesheet.
+
+   A CSS file with one unclosed `{` still parses — the browser just nests
+   everything after it inside whatever block was left open. When that block is
+   an `@media (min-width: 600px)`, the whole rest of the sheet silently becomes
+   desktop-only: the design looks perfect in a 1440px screenshot and a phone
+   gets an unstyled document. That is exactly what happened when a rule was
+   excised and took its media query's closing brace with it, and no audit
+   noticed, because every individual rule was still valid.
+
+   Comments are blanked rather than stripped so the reported line number is the
+   real one. */
+for (const f of styles) {
+  const raw = readFileSync(f, 'utf8');
+  const src = raw.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+  let depth = 0;
+  const open = [];
+  let extra = 0;
+  src.split('\n').forEach((line, i) => {
+    for (const ch of line) {
+      if (ch === '{') {
+        depth += 1;
+        open.push(i + 1);
+      } else if (ch === '}') {
+        depth -= 1;
+        open.pop();
+        if (depth < 0) {
+          extra = i + 1;
+          depth = 0;
+        }
+      }
+    }
+  });
+  if (extra) problems.push(`${f}: stray closing brace at line ${extra}`);
+  if (depth > 0) {
+    problems.push(
+      `${f}: ${depth} unclosed block(s) — opened at line ${open[open.length - 1]}. ` +
+        'Everything after it is nested inside that block; on a media query that silently makes the rest of the sheet conditional.'
+    );
+  }
+}
 const code = files.filter((f) => /\.(jsx?|tsx?)$/.test(f));
 
 const HEX = /#[0-9a-fA-F]{3,8}\b/g;

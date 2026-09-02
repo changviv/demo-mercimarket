@@ -21,6 +21,14 @@
   --ink: #2e2620;           /* headings + body            13.0:1 on cream */
   --ink-2: #6a5f55;         /* secondary copy              5.6:1 on cream */
   --ink-3: #6e6459;         /* meta, captions              5.2:1 on cream */
+  --ink-off: #a1927f;       /* DISABLED control glyphs     3.0:1 on white.
+                               WCAG exempts inactive components from contrast
+                               entirely, but a control you can still see is a
+                               control you understand is unavailable, rather
+                               than one that failed to draw. 3:1 is the floor
+                               held here: clearly quieter than --ink-2 at 5.6,
+                               clearly present. Never used for anything a
+                               person has to read. */
 
   /* ---- Lines ------------------------------------------------------------- */
   --line: #e3d2b6;
@@ -61,8 +69,16 @@
   --fs-h3: clamp(1.12rem, 1.03rem + 0.4vw, 1.35rem);
   --fs-body: 1rem;          /* 16px — never smaller for running copy */
   --fs-sm: 0.9375rem;       /* 15px */
+  --fs-ui: 0.875rem;        /* 14px — chips, counts, controls */
   --fs-xs: 0.8125rem;       /* 13px — labels and meta only, never paragraphs */
   --fs-2xs: 0.75rem;        /* 12px — pills and eyebrows only */
+  --fs-3xs: 0.6875rem;      /* 11px — the artifacts' uppercase micro-labels:
+                               badges, the rail and summary captions. Below the
+                               12px floor the responsive audit holds for running
+                               text, and exempted from it by name, because these
+                               are short all-caps words at high contrast where
+                               the cap height does the work — not prose. Nothing
+                               that has to be READ is set at this size. */
 
   --lh-tight: 1.08;
   --lh-snug: 1.28;
@@ -84,17 +100,39 @@
   --s-16: 64px;
 
   /* ---- Radius ------------------------------------------------------------ */
+  --r-2xs: 6px;             /* the configurator's checkbox mark */
+  --r-xs: 9px;              /* the menu artifact's rail link and inline flag */
   --r-sm: 10px;
   --r-tab: 12px;            /* the honey "Est. 1979" tab */
   --r: 16px;
+  --r-dialog: 20px;         /* the item sheet. Its own step rather than --r-lg
+                               because a dialog corner and a hero-image corner
+                               are different jobs, and the artifacts give them
+                               different values (20 and 24). */
   --r-lg: 24px;
   --r-pill: 999px;
 
   /* ---- Layout ------------------------------------------------------------ */
   --shell: 1240px;          /* max content width — the artifact's measure */
   --shell-narrow: 760px;    /* prose measure */
+  /* There is ONE container width. The menu artifact was drawn at 1360 and the
+     others at 1180-1240, and honouring both meant the masthead visibly jumped
+     120px wider when you walked from the home page into the menu — the logo
+     and the nav landing in a different place on each screen. A container that
+     moves between pages reads as two different sites. Every route now uses
+     --shell; the browse screen absorbs the difference in its middle column. */
   --gutter: 22px;           /* artifact gutter; 40px from 900px up */
   --header-h: 78px;         /* artifact masthead height */
+  --scroll-offset: calc(var(--header-h) + var(--s-4));
+                            /* clearance above an anchor destination, so the
+                               sticky header does not cover the heading you
+                               just jumped to. A screen with more sticky chrome
+                               raises it on the destination element — the menu's
+                               .cat sets 160 for its masthead plus control bar.
+                               It is a token rather than a constant because
+                               `[id]:target` outranks a class, so a per-screen
+                               override written as a competing rule silently
+                               loses. */
   --actionbar-h: 74px;      /* mobile bottom action bar */
   --tap: 44px;              /* minimum interactive target */
 

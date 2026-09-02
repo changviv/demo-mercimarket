@@ -1,4 +1,11 @@
-/* Merci Market catering menu — 76 items across 8 categories, transcribed from
+/* `vegCount: true` marks the items where "how many of these should be
+   vegetarian?" is a real question — a platter of sandwiches or wraps that gets
+   divided up. It is a flag on the item, not a guess from its category: the
+   build previously inferred it from `categoryId === 'sandwich-platters'`,
+   which asked the question on nothing else and missed Breakfast Wraps, where
+   the artifact asks it. Four items carry it.
+
+   Merci Market catering menu — 76 items across 8 categories, transcribed from
    catering38.mercimarketnyc.com. Prices stripped out of description text,
    supplier boilerplate removed, and the "choose N" rules that the live site
    buries in prose promoted to structured `groups` the UI can enforce.
@@ -124,6 +131,7 @@ export const MENU = [
       {
         "id": "breakfast-wraps",
         "name": "Breakfast Wraps",
+        "vegCount": true,
         "price": 11.99,
         "desc": "Your choice of wraps.",
         "groups": [
@@ -333,6 +341,7 @@ export const MENU = [
       {
         "id": "uno-classic-sandwich-package",
         "name": "Uno Classic Sandwich Package",
+        "vegCount": true,
         "price": 19.99,
         "desc": "Assorted signature sandwiches and your choice of side.",
         "popular": true,
@@ -350,6 +359,7 @@ export const MENU = [
       {
         "id": "dos-classic-sandwich-package",
         "name": "Dos Classic Sandwich Package",
+        "vegCount": true,
         "price": 21.99,
         "desc": "Assorted signature sandwiches and your choice of two sides.",
         "popular": true,
@@ -368,6 +378,7 @@ export const MENU = [
       {
         "id": "all-out-sandwich-package",
         "name": "All Out Sandwich Package",
+        "vegCount": true,
         "price": 27.99,
         "desc": "Assorted signature sandwiches and your choice of three sides.",
         "popular": true,

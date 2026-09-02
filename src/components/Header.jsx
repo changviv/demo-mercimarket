@@ -6,20 +6,39 @@ import { getLocation } from '../data/locations.js';
 import NavAnchor from './NavAnchor.jsx';
 import logo from '/img/logo-tomato.webp';
 
-/* Masthead, matching the approved hero artifact (37aef8e5):
-   78px tall, 42px logo, nav, then Order Pickup (outline) + Start a Catering
-   Order (solid) pushed right.
+/* Masthead, in two modes.
 
-   Two things the artifact does that the earlier build did not:
+   MARKETING — the approved hero artifact (37aef8e5): 78px tall, 42px logo,
+   nav, then Order Pickup (outline) + Start a Catering Order (solid) pushed
+   right. Used on / and /catering.
+
+   Two things that artifact does that the earlier build did not:
    - the logo stands alone. No "Catering" label beside it; the wordmark is the
      brand and a second word next to it reads as a different company.
    - nav items are in-app anchors (see NavAnchor) rather than links off to
      mercimarketnyc.com.
 
+   ORDERING — every artifact in the ordering flow (menu 06cbed02, item
+   84ab8175, checkout 42bdcee2, order 8c40fafa) drops the nav and the CTAs and
+   carries the ORDER'S context instead: logo, then who and where, then one
+   escape hatch. The menu artifact is the one that specifies it fully — the
+   store's name and address with "Change store" beneath, and a single Locations
+   button.
+
+   That is not a stylistic difference. Once someone is inside an order, the
+   masthead's job stops being "here is the rest of the site" and becomes "here
+   is which kitchen you are ordering from", because every price and lead time on
+   the page below depends on that answer. Selling the site to someone already
+   buying is how a funnel leaks. It also removes a whole row of chrome: the
+   build previously repeated the store name, Change store and Locations in a
+   second bar under a masthead that was already 79px tall.
+
    The drawer is a real dialog: focus trapped, Escape closes, focus restored to
    the trigger, body scroll locked. A hamburger that only reveals a div does
    none of that, and on iOS the page behind it scrolls while the menu sits
    still. */
+
+const ORDERING = /^\/(menu|checkout|orders)\b/;
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -29,6 +48,7 @@ export default function Header() {
   const panelRef = useRef(null);
 
   const location = order.locationId ? getLocation(order.locationId) : null;
+  const ordering = ORDERING.test(pathname);
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -69,37 +89,52 @@ export default function Header() {
   }, [open]);
 
   return (
-    <header className="mast">
+    <header className={`mast${ordering ? ' mast--order' : ''}`}>
       <div className="shell mast__inner">
         <Link to="/" className="mast__brand" aria-label="Merci Market NYC — home">
           <img src={logo} alt="Merci Market NYC" width="163" height="42" />
         </Link>
 
-        <nav className="mast__nav" aria-label="Main">
-          <ul className="mast__list">
-            {SITE_NAV.map((n) => (
-              <li key={n.label}>
-                <NavAnchor to={n.to} hash={n.hash} className="mast__link">
-                  {n.label}
-                </NavAnchor>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        {ordering ? (
+          location && (
+            <div className="mast__store">
+              <b className="mast__store-name">
+                {location.name} · {location.addr}
+              </b>
+              <Link to="/" className="mast__store-change">
+                Change store
+              </Link>
+            </div>
+          )
+        ) : (
+          <nav className="mast__nav" aria-label="Main">
+            <ul className="mast__list">
+              {SITE_NAV.map((n) => (
+                <li key={n.label}>
+                  <NavAnchor to={n.to} hash={n.hash} className="mast__link">
+                    {n.label}
+                  </NavAnchor>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
 
         <div className="mast__end">
-          {location && (
-            <Link to={`/menu/${location.id}`} className="mast__store">
-              <span className="mast__store-label">Ordering from</span>
-              <span className="mast__store-name">{location.name}</span>
-            </Link>
+          {ordering ? (
+            <NavAnchor to="/" hash="pick" className="btn btn--ghost mast__cta">
+              Locations
+            </NavAnchor>
+          ) : (
+            <>
+              <NavAnchor to="/" hash="pick" className="btn btn--ghost mast__cta mast__cta--out">
+                Order Pickup
+              </NavAnchor>
+              <Link to="/catering" className="btn btn--primary mast__cta">
+                Start a Catering Order
+              </Link>
+            </>
           )}
-          <NavAnchor to="/" hash="pick" className="btn btn--ghost mast__cta mast__cta--out">
-            Order Pickup
-          </NavAnchor>
-          <Link to="/catering" className="btn btn--primary mast__cta">
-            Start a Catering Order
-          </Link>
           <button
             type="button"
             ref={triggerRef}

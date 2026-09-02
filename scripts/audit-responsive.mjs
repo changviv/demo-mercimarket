@@ -47,10 +47,25 @@ async function run() {
   for (const [w, h, label] of WIDTHS) {
     const page = await browser.newPage({ viewport: { width: w, height: h } });
     const problems = [];
+    /* The container must be the same width on every route at a given viewport.
+       It was not: the menu ran on a 1360 measure while the marketing pages ran
+       on 1240, so the masthead — logo, nav, buttons — visibly jumped 120px
+       wider when you walked from the home page into the menu. Nothing else
+       catches this, because each page is internally consistent. */
+    const shells = {};
 
     for (const route of ROUTES) {
       await page.goto(BASE + route, { waitUntil: 'networkidle' });
       await page.waitForTimeout(250);
+
+      shells[route] = await page.evaluate(() => {
+        const m = document.querySelector('.mast__inner');
+        const s = document.querySelector('main .shell') || document.querySelector('.shell');
+        return {
+          mast: m ? Math.round(m.getBoundingClientRect().width) : null,
+          shell: s ? Math.round(s.getBoundingClientRect().width) : null,
+        };
+      });
 
       const found = await page.evaluate(() => {
         const out = [];
@@ -92,10 +107,29 @@ async function run() {
             }
           }
 
-          // text below 12px is unreadable regardless of layout
+          /* Text below 12px is unreadable regardless of layout — with one
+             carve-out, kept deliberately narrow.
+
+             The artifacts set their uppercase micro-labels at 11px: the badge
+             pills, the "CATEGORIES" and "YOUR ORDER" captions. Those are two or
+             three all-caps words at high contrast, where the cap height is what
+             the eye measures and 11px reads like 13px of lowercase. A blanket
+             floor forced them to 12px and put the build out of step with the
+             design for no legible gain.
+
+             So the exemption is by CLASS, not by size: only these components
+             may go below the floor, and only while they stay uppercase. Any
+             other element under 12px, and any of these that loses its
+             text-transform, still fails. */
           if (el.children.length === 0 && el.textContent.trim()) {
-            const fs = parseFloat(getComputedStyle(el).fontSize);
-            if (fs && fs < 12) out.push(`text at ${fs}px: "${el.textContent.trim().slice(0, 24)}"`);
+            const cs = getComputedStyle(el);
+            const fs = parseFloat(cs.fontSize);
+            const micro = el.closest('.badge, .rail__head, .summary__h, .railmob__count');
+            const exempt =
+              micro && getComputedStyle(micro).textTransform === 'uppercase' && fs >= 11;
+            if (fs && fs < 12 && !exempt) {
+              out.push(`text at ${fs}px: "${el.textContent.trim().slice(0, 24)}"`);
+            }
           }
         }
 
@@ -217,6 +251,171 @@ async function run() {
         }
       }
 
+      /* The browse screen, at every width.
+
+         Its three columns collapse in two stages — the summary goes first at
+         1240, the rail at 960 — and each stage has to hand its job to
+         something else rather than just disappear. The summary's job goes to
+         the fixed action bar; the rail's goes to a scrolling chip row. A
+         collapse that drops the job instead of moving it is how a phone user
+         ends up scrolling 10,000px with no way to jump and no running total. */
+      if (route === '/menu/bryant-park') {
+        const menu = await page.evaluate(() => {
+          const vis = (sel) => {
+            const e = document.querySelector(sel);
+            if (!e) return false;
+            const s = getComputedStyle(e);
+            return s.display !== 'none' && s.visibility !== 'hidden';
+          };
+          const chips = [...document.querySelectorAll('.railmob__link')];
+          return {
+            w: document.documentElement.clientWidth,
+            rail: vis('.rail'),
+            railmob: vis('.railmob'),
+            summary: vis('.summary'),
+            abar: vis('.abar'),
+            controls: vis('.controls'),
+            storebar: !!document.querySelector('.storebar'),
+            // Every mobile category chip must carry its label AND its count.
+            chipsLabelled: chips.length === 0 || chips.every((c) => /\S/.test(c.textContent.replace(/\d+/g, ''))),
+            chipsCounted: chips.length === 0 || chips.every((c) => c.querySelector('.railmob__count')),
+            chipCount: chips.length,
+            // The control bar must never eat more than a fifth of a short viewport.
+            controlsH: Math.round((document.querySelector('.controls') || { getBoundingClientRect: () => ({ height: 0 }) }).getBoundingClientRect().height),
+            // Cards must never be narrower than a readable measure.
+            cardW: Math.round((document.querySelector('.item') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width),
+            // The Add control must stay a real target.
+            addBox: (() => {
+              const a = document.querySelector('.add');
+              if (!a) return null;
+              const r = a.getBoundingClientRect();
+              return [Math.round(r.width), Math.round(r.height)];
+            })(),
+            /* Sticky BARS must not stack into a wall above the content.
+               Only full-width bars count: a sticky sidebar is 300px wide and
+               1000px tall by design, and summing those said "907px of chrome"
+               on a perfectly good desktop layout. Width is what separates a
+               bar from a column. */
+            stickyTop: [...document.querySelectorAll('body *')]
+              .filter((e) => {
+                if (getComputedStyle(e).position !== 'sticky') return false;
+                const r = e.getBoundingClientRect();
+                return r.top < 200 && r.width > document.documentElement.clientWidth * 0.8;
+              })
+              .reduce((sum, e) => sum + Math.round(e.getBoundingClientRect().height), 0),
+          };
+        });
+
+        /* The running line is a <p> used as a layout row, so the global prose
+           measure caps it. Invisible on a phone, where 68ch is wider than the
+           screen; at 1024 it stopped the row at half the bar and left the
+           total floating in the middle. Assert it spans the bar. */
+        const abarRow = await page.evaluate(() => {
+          const bar = document.querySelector('.abar');
+          const row = document.querySelector('.abar__running');
+          if (!bar || !row || getComputedStyle(bar).display === 'none') return null;
+          const b = bar.getBoundingClientRect();
+          const r = row.getBoundingClientRect();
+          const pad = parseFloat(getComputedStyle(bar).paddingLeft) || 0;
+          return { short: r.width < b.width - pad * 2 - 1, rowW: Math.round(r.width), barW: Math.round(b.width) };
+        });
+        if (abarRow && abarRow.short) {
+          problems.push(
+            `${route} — action bar row is ${abarRow.rowW}px inside a ${abarRow.barW}px bar (prose measure leaking into a layout row)`
+          );
+        }
+
+        /* The item dialog, at this width. It is opened here rather than in a
+           separate pass because a modal is exactly the thing that breaks at
+           320px — it has a fixed max-width, a scrolling body and a footer that
+           has to stay reachable — and nothing else in the suite ever renders
+           it below 1440. */
+        const dlg = await page.evaluate(async () => {
+          const card = [...document.querySelectorAll('.item')].find((i) =>
+            /All Out Sandwich Package/.test(i.textContent)
+          );
+          card?.querySelector('.add')?.click();
+          await new Promise((r) => setTimeout(r, 400));
+          const sheet = document.querySelector('.sheet');
+          if (!sheet) return null;
+          const r = sheet.getBoundingClientRect();
+          const foot = document.querySelector('.sheet__foot').getBoundingClientRect();
+          const body = document.querySelector('.sheet__body');
+          const vw = document.documentElement.clientWidth;
+          const vh = window.innerHeight;
+          const small = [...sheet.querySelectorAll('button, a[href], textarea, .opt')]
+            .filter((e) => e.offsetParent !== null)
+            .map((e) => ({ e, b: e.getBoundingClientRect() }))
+            .filter((x) => x.b.height > 0 && x.b.height < 44 && x.b.width < 44)
+            .map((x) => `${(x.e.className || x.e.tagName).toString().split(/\s+/)[0]} ${Math.round(x.b.width)}x${Math.round(x.b.height)}`);
+          return {
+            w: Math.round(r.width),
+            vw,
+            overflowsX: r.left < -1 || r.right > vw + 1,
+            tallerThanViewport: Math.round(r.height) > vh + 1,
+            footVisible: foot.bottom <= vh + 1 && foot.top >= 0,
+            footWithinSheet: foot.bottom <= r.bottom + 1,
+            bodyScrolls: getComputedStyle(body).overflowY === 'auto',
+            smallTargets: small,
+            smallList: small.join(', '),
+            centred: vw >= 760 ? Math.abs((r.left + r.right) / 2 - vw / 2) < 2 : true,
+            bottomAnchored: vw < 760 ? Math.abs(r.bottom - vh) < 2 : true,
+          };
+        });
+
+        if (!dlg) {
+          problems.push(`${route} — the item dialog did not open`);
+        } else {
+          if (dlg.overflowsX) problems.push(`${route} — item dialog is ${dlg.w}px in a ${dlg.vw}px viewport`);
+          if (dlg.tallerThanViewport) problems.push(`${route} — item dialog is taller than the viewport`);
+          if (!dlg.footVisible) problems.push(`${route} — item dialog footer (total and Add) is off screen`);
+          if (!dlg.footWithinSheet) problems.push(`${route} — item dialog footer escapes the sheet, squaring off its corners`);
+          if (!dlg.bodyScrolls) problems.push(`${route} — item dialog body does not scroll, so long option lists are unreachable`);
+          if (dlg.smallTargets.length) {
+            problems.push(`${route} — target(s) under 44px inside the item dialog: ${dlg.smallList}`);
+          }
+          if (!dlg.centred) problems.push(`${route} — item dialog is not centred at this width`);
+          if (!dlg.bottomAnchored) problems.push(`${route} — item dialog is not bottom-anchored on a phone`);
+        }
+        await page.evaluate(() => document.querySelector('.sheet__x')?.click());
+        await page.waitForTimeout(200);
+
+        if (menu.storebar) problems.push(`${route} — the duplicate store bar is back`);
+        if (!menu.controls) problems.push(`${route} — control bar missing`);
+
+        // Rail and its mobile counterpart are alternatives, never both, never neither.
+        if (menu.rail === menu.railmob) {
+          problems.push(
+            `${route} — category nav is ${menu.rail ? 'duplicated' : 'missing'} (rail:${menu.rail} chips:${menu.railmob})`
+          );
+        }
+        if (menu.railmob && !menu.chipsLabelled) {
+          problems.push(`${route} — mobile category chips have no labels`);
+        }
+        if (menu.railmob && !menu.chipsCounted) {
+          problems.push(`${route} — mobile category chips have no item counts`);
+        }
+        if (menu.railmob && menu.chipCount !== 8) {
+          problems.push(`${route} — ${menu.chipCount} mobile category chips, expected 8`);
+        }
+        // Without the summary there must be a running total somewhere.
+        if (!menu.summary && !menu.abar) {
+          problems.push(`${route} — no order summary and no action bar: the total is invisible`);
+        }
+        if (menu.controlsH > 140) {
+          problems.push(`${route} — control bar is ${menu.controlsH}px tall`);
+        }
+        if (menu.cardW && menu.cardW < 250) {
+          problems.push(`${route} — item cards are only ${menu.cardW}px wide`);
+        }
+        if (menu.addBox && menu.addBox[1] < 40) {
+          problems.push(`${route} — Add is ${menu.addBox.join('x')}`);
+        }
+        if (menu.stickyTop > 220) {
+          problems.push(`${route} — sticky chrome stacks to ${menu.stickyTop}px before any content`);
+        }
+      }
+
       /* The catering page closes with the CTA card, and must NOT duplicate the
          picker grid. */
       if (route === '/catering') {
@@ -229,6 +428,21 @@ async function run() {
         if (close.strayPicker) problems.push(`${route} — duplicates the store picker (${close.strayPicker} cards)`);
         if (close.ctaButtons !== 2) problems.push(`${route} — closing CTA has ${close.ctaButtons} buttons, expected 2`);
       }
+    }
+
+    const mastWidths = [...new Set(Object.values(shells).map((x) => x.mast).filter(Boolean))];
+    if (mastWidths.length > 1) {
+      const detail = Object.entries(shells)
+        .map(([r, x]) => `${r}:${x.mast}`)
+        .join(' ');
+      problems.push(`masthead width differs between routes — ${detail}`);
+    }
+    const shellWidths = [...new Set(Object.values(shells).map((x) => x.shell).filter(Boolean))];
+    if (shellWidths.length > 1) {
+      const detail = Object.entries(shells)
+        .map(([r, x]) => `${r}:${x.shell}`)
+        .join(' ');
+      problems.push(`content container differs between routes — ${detail}`);
     }
 
     if (problems.length) {
