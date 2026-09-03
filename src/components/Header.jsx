@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { SITE_NAV } from '../data/site.js';
 import { useOrder } from '../state/OrderContext.jsx';
 import { getLocation } from '../data/locations.js';
 import NavAnchor from './NavAnchor.jsx';
+import StoreMenu from './StoreMenu.jsx';
 import logo from '/img/logo-tomato.webp';
 
 /* Masthead, in two modes.
@@ -25,6 +26,13 @@ import logo from '/img/logo-tomato.webp';
    store's name and address with "Change store" beneath, and a single Locations
    button.
 
+   ONE DEPARTURE FROM THAT ARTIFACT, recorded in audit-artifact.mjs: the
+   Locations button is gone. It and "Change store" both ended at the same
+   six-store picker on the home page, so the masthead asked the same question
+   twice and answered it by throwing you out of the order. "Change store" is now
+   a menu (see StoreMenu) that switches store in place, which leaves the button
+   with nothing to do that the menu does not do better.
+
    That is not a stylistic difference. Once someone is inside an order, the
    masthead's job stops being "here is the rest of the site" and becomes "here
    is which kitchen you are ordering from", because every price and lead time on
@@ -44,11 +52,25 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const { order } = useOrder();
+  const navigate = useNavigate();
   const triggerRef = useRef(null);
   const panelRef = useRef(null);
 
   const location = order.locationId ? getLocation(order.locationId) : null;
   const ordering = ORDERING.test(pathname);
+
+  /* The URL owns the store — useSyncLocation dispatches setLocation when
+     :locationId changes, and setLocation is what clears the basket. So choosing
+     a store is a navigation, not a dispatch; doing both would clear twice.
+
+     dryRun answers "what would this cost me?" without doing it, so StoreMenu
+     can ask before it is too late. Zero means switch silently. */
+  const chooseStore = (loc, { dryRun } = {}) => {
+    if (loc.id === order.locationId) return 0;
+    if (dryRun) return order.lines.length;
+    navigate(`/menu/${loc.id}`);
+    return 0;
+  };
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -101,9 +123,7 @@ export default function Header() {
               <b className="mast__store-name">
                 {location.name} · {location.addr}
               </b>
-              <Link to="/" className="mast__store-change">
-                Change store
-              </Link>
+              <StoreMenu current={location} onChoose={chooseStore} />
             </div>
           )
         ) : (
@@ -121,11 +141,7 @@ export default function Header() {
         )}
 
         <div className="mast__end">
-          {ordering ? (
-            <NavAnchor to="/" hash="pick" className="btn btn--ghost mast__cta">
-              Locations
-            </NavAnchor>
-          ) : (
+          {!ordering && (
             <>
               <NavAnchor to="/" hash="pick" className="btn btn--ghost mast__cta mast__cta--out">
                 Order Pickup
@@ -164,6 +180,24 @@ export default function Header() {
             aria-label="Site menu"
             ref={panelRef}
           >
+            {/* The phone masthead has room for a wordmark and a burger, so the
+                store block — and with it the store menu — is not on screen.
+                The drawer is where that control lives instead, open rather than
+                behind a second tap, since the drawer IS the tap. */}
+            {ordering && location && (
+              <div className="drawer__store">
+                <p className="drawer__storehead">
+                  Ordering from <b>{location.name}</b>
+                </p>
+                <StoreMenu
+                  current={location}
+                  onChoose={chooseStore}
+                  inline
+                  onDone={() => setOpen(false)}
+                />
+              </div>
+            )}
+
             <ul className="drawer__list">
               {SITE_NAV.map((n) => (
                 <li key={n.label}>

@@ -109,8 +109,27 @@ a {
   text-underline-offset: 3px;
 }
 
-a:hover {
+/* Prose links only — NOT anchors that are components.
+
+   `a:hover` is one type plus one pseudo-class, which outranks a single class.
+   So this rule beat `.btn { color: var(--btn-fg) }` on every anchor styled as
+   a button: hovering turned the LABEL --tomato-deep at the same moment
+   `.btn--primary:hover` turned the FILL --tomato-deep, and the text vanished
+   into the button. Measured contrast on hover was 1.00 — not low, identical —
+   on "Start a Catering Order", "Continue to delivery", "Choose your store" and
+   every other link-button in the product.
+
+   A component that sets its own colour now keeps it, and declares its own
+   hover treatment where it wants one. */
+a:not(.btn):hover {
   color: var(--tomato-deep);
+}
+
+/* Belt and braces: even if a future rule outranks the one above, a button's
+   label follows its own token and can never become its own background. */
+.btn:hover,
+.btn:focus-visible {
+  color: var(--btn-fg);
 }
 
 ul,

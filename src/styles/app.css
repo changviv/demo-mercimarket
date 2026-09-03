@@ -99,17 +99,6 @@
   text-overflow: ellipsis;
 }
 
-.mast__store-change {
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  color: var(--tomato-ink);
-  text-decoration: none;
-}
-
-.mast__store-change:hover {
-  text-decoration: underline;
-}
-
 @media (min-width: 701px) {
   .mast__store {
     display: flex;
@@ -208,6 +197,224 @@
   font-size: var(--fs-h3);
   font-weight: 600;
   text-decoration: none;
+}
+
+.drawer__store {
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.drawer__storehead {
+  margin: 0 0 var(--s-2);
+  max-width: none;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+.drawer__storehead b {
+  color: var(--ink);
+}
+
+/* ==========================================================================
+   Store menu — "Change store" as a menu instead of a trip to the home page
+   ==========================================================================
+   Two presentations of one component (see StoreMenu.jsx): a dropdown under the
+   masthead's store block from 701px up, and an open list inside the drawer on a
+   phone. Everything below the `--inline` overrides is shared. */
+
+.storemenu {
+  position: relative;
+}
+
+.storemenu__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  /* Matches .mast__store-change, which this replaced: it sits under the store
+     name inside a 66px masthead, so it cannot carry the 44px tap floor. It is
+     a desktop-only control — the phone gets the drawer's list, where the items
+     are full height. */
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tomato-ink);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.storemenu__trigger:hover {
+  text-decoration: underline;
+}
+
+.storemenu__caret {
+  transition: transform var(--dur) var(--ease);
+}
+
+.storemenu__trigger[aria-expanded='true'] .storemenu__caret {
+  transform: rotate(180deg);
+}
+
+.storemenu__panel {
+  position: absolute;
+  z-index: 90;
+  top: calc(100% + 10px);
+  left: -14px;
+  width: 320px;
+  max-width: calc(100vw - 2 * var(--gutter));
+  padding: var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--lift-lg);
+}
+
+.storemenu__head {
+  margin: 0 0 var(--s-2);
+  padding: 0 10px;
+  max-width: none;
+  color: var(--ink-3);
+  font-size: var(--fs-3xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.storemenu__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.storemenu__item {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease);
+}
+
+.storemenu__item:hover,
+.storemenu__item:focus-visible {
+  background-color: var(--sunken);
+}
+
+.storemenu__item--here {
+  background-color: var(--sunken);
+}
+
+.storemenu__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.storemenu__here {
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  background-color: var(--tomato-tint);
+  color: var(--tomato-ink);
+  font-size: var(--fs-3xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.storemenu__addr {
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+}
+
+.storemenu__hours {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+}
+
+.storemenu__hours svg {
+  width: 13px;
+  height: 13px;
+}
+
+.storemenu__hours--shut {
+  color: var(--ink-3);
+}
+
+/* The confirmation replaces the list in place rather than stacking a second
+   surface on top of it: there is one decision left to make, so there should be
+   one thing on screen to read. */
+.storemenu__panel--ask {
+  padding: var(--s-4);
+}
+
+.storemenu__askhead {
+  margin: 0 0 var(--s-2);
+  max-width: none;
+  font-family: var(--display);
+  font-size: var(--fs-h3);
+  font-weight: 600;
+}
+
+.storemenu__askbody {
+  margin: 0 0 var(--s-4);
+  max-width: none;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+.storemenu__askrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.storemenu__askrow .btn {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+/* ---- Inline (drawer) ---------------------------------------------------- */
+
+.storemenu--inline .storemenu__panel {
+  position: static;
+  width: auto;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.storemenu--inline .storemenu__head {
+  padding: 0;
+}
+
+.storemenu--inline .storemenu__item {
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
+.storemenu--inline .storemenu__list {
+  display: grid;
+  gap: var(--s-2);
 }
 
 /* ==========================================================================
@@ -1421,12 +1628,6 @@
 
   .mast__burger {
     display: none;
-  }
-
-  /* The ordering masthead has no nav to make room for, so its single button
-     never needs to collapse. */
-  .mast--order .mast__cta {
-    display: inline-flex;
   }
 
   .abar {
