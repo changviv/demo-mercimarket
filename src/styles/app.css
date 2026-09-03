@@ -90,6 +90,31 @@
   border-left: 1px solid var(--line);
 }
 
+/* Checkout only: whose payment rails these are. The checkout artifact
+   (42bdcee2) puts exactly this in the masthead and nothing else. Below 900px
+   the masthead is a wordmark and a burger, and the sentence has nowhere to go
+   that is not on top of something else — the payment step makes the same claim
+   in full. */
+.mast__secure {
+  display: none;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.mast__secure svg {
+  flex: none;
+  color: var(--basil);
+}
+
+@media (min-width: 900px) {
+  .mast__secure {
+    display: inline-flex;
+  }
+}
+
 .mast__store-name {
   font-size: var(--fs-sm);
   font-weight: 700;
@@ -1162,181 +1187,458 @@
 }
 
 /* ==========================================================================
-   Checkout
+   Checkout — artifact 42bdcee2
    ========================================================================== */
+
+/* The page title on an ordering screen. Checkout (42bdcee2) and order
+   management (8c40fafa) draw the same one, deliberately quieter than a
+   marketing h1 — see --fs-page. */
+.page-title {
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 90, 'SOFT' 45, 'WONK' 1;
+  font-weight: 700;
+  font-size: var(--fs-page);
+  line-height: 1.06;
+  letter-spacing: -0.018em;
+  margin: 0 0 10px;
+  text-wrap: balance;
+}
+
+.co__intro {
+  padding: 34px 0 6px;
+}
+
+.co__intro p {
+  margin: 0;
+  color: var(--ink-2);
+  max-width: 66ch;
+}
 
 .co {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--s-8);
-  padding-top: var(--s-8);
+  gap: 26px;
+  padding-top: 26px;
   padding-bottom: var(--s-16);
+  align-items: start;
 }
 
-.steps2 {
+.co__main,
+.co__side {
+  min-width: 0;
+}
+
+@media (min-width: 1040px) {
+  .co {
+    grid-template-columns: minmax(0, 1fr) 350px;
+  }
+
+  /* The artifact parks the summary 92px down: its own 68px masthead plus a
+     24px gap. This masthead is 74px, so the same gap puts it at 98. */
+  .co__side {
+    position: sticky;
+    top: calc(74px + var(--s-6));
+  }
+}
+
+/* ---- Notice band --------------------------------------------------------- */
+/* Icon, one line that makes a claim, and the sentence that backs it up. Two
+   instances on this screen — the basil store lock and the honey card-hold
+   explanation. See NoticeBand.jsx for why they share one set of metrics. */
+.band {
   display: flex;
-  gap: var(--s-2);
-  list-style: none;
-  margin: 0 0 var(--s-8);
-  padding: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 15px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--sunken);
 }
 
-.steps2::-webkit-scrollbar {
+.band__i {
+  flex: none;
+  line-height: 0;
+  margin-top: 2px;
+}
+
+.band__t {
+  min-width: 0;
+  /* Claim and backing sentence are the same colour in the artifact: the weight
+     and the size do the separating, not a second ink. */
+  color: var(--ink-2);
+}
+
+.band__t strong {
+  display: block;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+}
+
+.band__t > span {
+  display: block;
+  font-size: var(--fs-ui);
+  line-height: 1.4;
+}
+
+.band--go {
+  background: var(--basil-tint);
+  border-color: var(--basil);
+}
+
+.band--go .band__i {
+  color: var(--basil);
+}
+
+.band--warn {
+  background: var(--honey-tint);
+  border-color: var(--honey);
+}
+
+.band--warn .band__i {
+  color: var(--ink);
+}
+
+.lock {
+  margin-bottom: 18px;
+}
+
+.hold {
+  margin-top: 16px;
+}
+
+/* ---- The four steps ------------------------------------------------------ */
+
+.step3 {
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r);
+  margin-bottom: 14px;
+  overflow: hidden;
+  box-shadow: var(--lift);
+}
+
+.step3--open {
+  border-color: var(--tomato);
+}
+
+.step3__h {
+  margin: 0;
+  font-size: var(--fs-body);
+  font-weight: 400;
+}
+
+.st-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 18px 20px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink);
+  font-family: var(--text);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.st-head[aria-disabled='true'] {
+  cursor: default;
+}
+
+.st-head:hover .st-t strong {
+  color: var(--tomato-ink);
+}
+
+.st-head[aria-disabled='true']:hover .st-t strong {
+  color: var(--ink);
+}
+
+.st-n {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  font-weight: 700;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.step3--open .st-n {
+  background: var(--tomato);
+  border-color: var(--tomato);
+  color: var(--on-tomato);
+}
+
+/* Done outranks open on purpose, exactly as the artifact orders them: a step
+   you have answered stays basil while you are re-editing it. */
+.step3--done .st-n {
+  background: var(--basil);
+  border-color: var(--basil);
+  color: var(--surface);
+}
+
+.st-t {
+  flex: 1;
+  min-width: 0;
+}
+
+.st-t strong {
+  display: block;
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 40, 'SOFT' 40, 'WONK' 0;
+  font-weight: 700;
+  font-size: 1.1875rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.st-sum {
+  display: block;
+  font-size: var(--fs-ui);
+  color: var(--ink-2);
+  line-height: 1.35;
+  margin-top: 2px;
+}
+
+.st-edit {
+  flex: none;
+  font-weight: 700;
+  font-size: var(--fs-xs);
+  color: var(--tomato-ink);
+}
+
+.step3:not(.step3--done) .st-edit {
   display: none;
 }
 
-.steps2__i {
+.st-body {
+  padding: 2px 20px 22px;
+  border-top: 1px solid var(--line);
+  margin-top: -1px;
+}
+
+/* ---- Fields inside a step ------------------------------------------------ */
+
+.fields {
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
+}
+
+@media (min-width: 620px) {
+  .fields--two {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.stepfoot {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+  flex-wrap: wrap;
+  padding-top: var(--s-5);
+}
+
+.stepfoot__note {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+/* ---- Deliver or collect -------------------------------------------------- */
+/* `.mode` is the hero's mode bar; these are the checkout's fulfillment tiles. */
+
+.fulfil {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 18px;
+}
+
+.fulfil__o {
+  flex: 1;
+  min-width: 150px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--sunken);
+  border-radius: var(--r-tab);
+  padding: 14px 16px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.fulfil__o--on {
+  border-color: var(--tomato);
+  background: var(--tomato-tint);
+}
+
+.fulfil__o b {
+  display: block;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+.fulfil__o span {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+}
+
+/* The radio inside is clipped, not removed, so the tile has to draw its own
+   focus ring. */
+.fulfil__o:has(input:focus-visible) {
+  outline: 2.5px solid var(--tomato);
+  outline-offset: 3px;
+}
+
+/* ---- Payment ------------------------------------------------------------- */
+
+.saved {
   display: flex;
   align-items: center;
-  gap: var(--s-2);
-  padding: var(--s-2) var(--s-4);
-  border-radius: var(--r-pill);
-  border: 1px solid var(--line);
-  background: var(--surface);
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-  white-space: nowrap;
-}
-
-.steps2__i--on {
-  border-color: var(--tomato);
-  background: var(--tomato-tint);
-  color: var(--tomato-ink);
-  font-weight: 700;
-}
-
-.steps2__i--done {
-  color: var(--basil);
-  border-color: var(--basil-tint);
-  background: var(--basil-tint);
-}
-
-.steps2__n {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: var(--r-pill);
-  background: var(--cream);
-  font-size: var(--fs-xs);
-  font-weight: 800;
-}
-
-.segment {
-  display: grid;
   gap: var(--s-3);
-}
-
-.segment__o {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--s-1) var(--s-3);
-  align-items: center;
-  padding: var(--s-4);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r);
-  background: var(--surface);
+  width: 100%;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--r-tab);
+  padding: 13px 16px;
+  margin-top: 14px;
   cursor: pointer;
+  background: var(--sunken);
+  text-align: start;
+  color: var(--ink);
+  font-family: var(--text);
 }
 
-.segment__o--on {
+.saved--on {
   border-color: var(--tomato);
   background: var(--tomato-tint);
 }
 
-.segment__o input {
+.saved__mk {
+  flex: none;
   width: 20px;
   height: 20px;
-  accent-color: var(--tomato);
-  grid-row: span 2;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
 }
 
-.segment__label {
+.saved--on .saved__mk {
+  border-color: var(--tomato);
+  background: var(--tomato);
+  box-shadow: inset 0 0 0 3px var(--surface);
+}
+
+.saved__t {
+  min-width: 0;
+}
+
+.saved__t b {
+  display: block;
   font-weight: 700;
-}
-
-.segment__sub {
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-  grid-column: 2;
-}
-
-.segment__o--on .segment__sub {
-  color: var(--tomato-ink);
-}
-
-.co__nav {
-  margin-top: var(--s-8);
-  padding-top: var(--s-5);
-  border-top: 1px solid var(--line);
-}
-
-.co__pci {
-  margin-top: var(--s-4);
-}
-
-.review {
-  margin: 0 0 var(--s-6);
-  border-top: 1px solid var(--line);
-}
-
-.review__row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--s-1);
-  padding: var(--s-3) 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.review__row dt {
-  font-size: var(--fs-xs);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-caps);
-  font-weight: 800;
-  color: var(--ink-3);
-}
-
-.review__row dd {
-  margin: 0;
   font-size: var(--fs-sm);
 }
 
+.saved__t span {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+}
+
+/* The artifact's payment slot: a dashed well that says a Stripe element would
+   mount here. Here one does — see Checkout.jsx. */
+.pm {
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--r-tab);
+  padding: 22px;
+  text-align: center;
+  background: var(--sunken);
+  margin-top: 18px;
+}
+
+.pm b {
+  display: block;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  margin-bottom: 5px;
+}
+
+.pm > span {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  line-height: 1.45;
+  max-width: 44ch;
+  margin: 0 auto;
+}
+
+/* With Stripe's own fields in it, the box is no longer a placeholder. */
+.pm--live {
+  border-style: solid;
+  text-align: left;
+  padding: 18px;
+}
+
+.pm__note {
+  margin: var(--s-3) 0 0;
+  font-size: var(--fs-xs);
+  max-width: none;
+}
+
+/* ---- Your order: the arithmetic ------------------------------------------ */
+
 .tot {
-  margin: var(--s-4) 0;
-  padding-top: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  padding-top: 13px;
   border-top: 1px solid var(--line);
 }
 
 .tot__row {
   display: flex;
   justify-content: space-between;
-  gap: var(--s-3);
-  padding: var(--s-2) 0;
-  font-size: var(--fs-sm);
-}
-
-.tot__row dt {
+  gap: 10px;
+  font-size: var(--fs-ui);
   color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
+.tot__row dt,
 .tot__row dd {
   margin: 0;
-  font-weight: 700;
+  color: inherit;
+  font-weight: inherit;
+}
+
+/* A number nobody has yet, drawn as an open question rather than a zero. */
+.tot__row--pending {
+  color: var(--tomato-ink);
+  font-weight: 600;
 }
 
 .tot__row--strong {
+  align-items: baseline;
+  padding-top: 11px;
   border-top: 1px solid var(--line);
-  margin-top: var(--s-2);
-  padding-top: var(--s-3);
-  font-family: var(--display);
-  font-size: var(--fs-h3);
+  color: var(--ink);
 }
 
-.tot__row--strong dt {
-  color: var(--ink);
+.tot__row--strong dd {
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 40, 'SOFT' 40, 'WONK' 0;
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+}
+
+.sum-card__back {
+  margin-top: var(--s-3);
 }
 
 /* ==========================================================================
@@ -1599,12 +1901,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .review__row {
-    grid-template-columns: 180px 1fr;
-    gap: var(--s-4);
-    align-items: baseline;
-  }
-
   .foot__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1662,11 +1958,6 @@
   }
 
   .config {
-    grid-template-columns: minmax(0, 1fr) 340px;
-    gap: var(--s-10);
-  }
-
-  .co {
     grid-template-columns: minmax(0, 1fr) 340px;
     gap: var(--s-10);
   }
@@ -2940,7 +3231,7 @@
 .sum-card {
   padding: var(--s-5);
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--line);
   border-radius: var(--r);
   box-shadow: var(--lift);
 }
@@ -2980,7 +3271,7 @@
 .lines li {
   display: flex;
   align-items: flex-start;
-  gap: var(--s-2);
+  gap: 10px;
   font-size: var(--fs-ui);
   line-height: 1.35;
 }
@@ -2997,6 +3288,7 @@
 }
 
 .lines .ln span {
+  display: block;
   color: var(--ink-3);
   font-size: var(--fs-xs);
 }
@@ -3071,6 +3363,7 @@
    about to commit is exactly who needs to know what is not yet settled. */
 .pending {
   margin: 13px 0 0;
+  max-width: none;
   padding: 9px 11px;
   border: 1px solid var(--honey);
   border-radius: var(--r-sm);

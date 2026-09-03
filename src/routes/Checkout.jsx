@@ -3,12 +3,18 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useOrder, lineTotal } from '../state/OrderContext.jsx';
 import { getLocation } from '../data/locations.js';
 import { DELIVERY_WINDOWS, TAX_RATE } from '../data/site.js';
-import { money, daysUntil, plural } from '../lib/format.js';
+import { money, dateLong, daysUntil, plural, todayISO } from '../lib/format.js';
 import { priceOrder, createOrder } from '../lib/api.js';
 import StripePayment from '../components/StripePayment.jsx';
 import EmptyState from '../components/EmptyState.jsx';
+import NoticeBand from '../components/NoticeBand.jsx';
+import OrderSummary from '../components/OrderSummary.jsx';
+import StepAccordion, { Step } from '../components/StepAccordion.jsx';
+import { Field, SelectField } from '../components/Field.jsx';
+import { Lock, ClockRing } from '../components/Icons.jsx';
 
-/* Prototype section 5 — "Toast + Stripe, per location".
+/* Prototype section 5 — "Toast + Stripe, per location", built to artifact
+   42bdcee2.
 
    Four steps, one screen. An accordion rather than a wizard, because the whole
    form stays visible as a list of what is still to answer, and any completed
@@ -18,7 +24,17 @@ import EmptyState from '../components/EmptyState.jsx';
    authorization does not live forever: roughly 7 days on the major networks,
    extendable to about 30 where the card and account support it, and nothing
    beyond that. Catering is routinely booked further out than any of those
-   windows, so the wording has to say what will actually happen. */
+   windows, so the wording has to say what will actually happen.
+
+   DEPARTURES FROM THE ARTIFACT, each recorded in audit-artifact.mjs with an
+   assertion that fails if it drifts:
+   - the artifact swaps the steps for an inline confirmation panel. This build
+     navigates to /orders/:id instead, which is a real screen with its own
+     artifact (8c40fafa) and can be reopened from an email a week later.
+   - the artifact's payment slot is a dashed placeholder that says a Stripe
+     element would mount there. Here one does.
+   - the summary carries an "Edit order" link back to the menu. The artifact's
+     only way back to the basket is the masthead. */
 
 const STEPS = [
   { n: 1, title: 'When do you need it?', fallback: 'Choose a date and time' },
@@ -43,6 +59,7 @@ export default function Checkout() {
   const confirmCard = useRef(null);
 
   const lead = daysUntil(order.date);
+  const delivery = order.fulfillment === 'delivery';
 
   /* Toast, not this app, computes tax and service charges. Ask whenever the
      basket or the fulfillment choice changes. */
@@ -73,10 +90,15 @@ export default function Checkout() {
 
   const stepErrors = {
     1: pick(errors, ['date', 'time']),
-    2: pick(errors, order.fulfillment === 'delivery' ? ['line1'] : []),
+    2: pick(errors, delivery ? ['line1'] : []),
     3: pick(errors, ['name', 'email', 'phone']),
     4: {},
   };
+
+  /* A step opens when it is the first one or when the one before it is
+     answered — the artifact's rule, and what keeps Place order out of reach of
+     an order with no date on it. */
+  const reachable = (n) => n === 1 || Boolean(done[n - 1]);
 
   async function advance(n) {
     setTouched((t) => ({ ...t, [n]: true }));
@@ -94,7 +116,7 @@ export default function Checkout() {
           date: order.date,
           time: order.time,
           contact: order.contact,
-          address: order.fulfillment === 'delivery' ? order.address : null,
+          address: delivery ? order.address : null,
           notes: order.notes,
           lines: order.lines.map((l) => ({
             itemId: l.itemId,
@@ -103,9 +125,9 @@ export default function Checkout() {
             allergies: l.allergies,
           })),
         });
-        setClientSecret(res.clientSecret || null);
-        if (res.pricing) setPricing(res.pricing);
-        sessionStorage.setItem('mm.pendingOrder', res.orderId);
+        setClientSecret(res?.clientSecret || null);
+        if (res?.pricing) setPricing(res.pricing);
+        if (res?.orderId) sessionStorage.setItem('mm.pendingOrder', res.orderId);
       } catch (e) {
         setError(e.message);
         setBusy(false);
@@ -147,255 +169,240 @@ export default function Checkout() {
     }
   }
 
+  /* A step head states what was answered only once it HAS been answered.
+     Filling half of step one and walking away must not leave a summary
+     claiming the step is settled. */
   const summaries = {
-    1: order.date && order.time ? `${order.date} · ${order.time}` : null,
-    2:
-      order.fulfillment === 'delivery'
-        ? order.address.line1
-          ? `Delivery to ${order.address.line1}`
-          : 'Deliver to me'
-        : `Pickup · ${location.addr}`,
-    3: order.contact.name ? `${order.contact.name} · ${order.contact.email}` : null,
-    4: null,
+    1: done[1] ? `${dateLong(order.date)} · ${order.time}` : STEPS[0].fallback,
+    2: done[2]
+      ? delivery
+        ? `Delivery to ${order.address.line1.trim()}`
+        : `Pickup at ${location.addr}`
+      : STEPS[1].fallback,
+    3: done[3] ? `${order.contact.name.trim()} · ${order.contact.email.trim()}` : STEPS[2].fallback,
+    4: STEPS[3].fallback,
   };
 
+  const errsFor = (n) => (touched[n] ? stepErrors[n] : {});
+
   return (
-    <div className="shell co">
-      <div className="co__main">
-        <div className="co__intro">
-          <h1>Checkout</h1>
-          <p>
-            Four steps, one screen, nothing hidden until the end. The card is authorized
-            now and charged when the order goes out — so a headcount that moves does not
-            mean a refund. Built against your Toast and Stripe setup: one Toast restaurant
-            and one Stripe account per location.
-          </p>
-        </div>
+    <>
+      <div className="shell co__intro">
+        <h1 className="page-title">Checkout</h1>
+        <p>
+          Four steps, one screen, nothing hidden until the end. The card is authorized
+          now and charged when the order goes out — so a headcount that moves does not
+          mean a refund. Built against your Toast and Stripe setup: one Toast restaurant
+          and one Stripe account per location.
+        </p>
+      </div>
 
-        <div className="lock">
-          <span aria-hidden="true" className="lock__i" />
-          <span>
-            <strong>
-              Ordering from Merci Market {location.name} · {location.addr}
-            </strong>
-            <span>
-              This order goes to {location.name}&rsquo;s kitchen and is paid to{' '}
-              {location.name}. Items from another store need their own order.
-            </span>
-          </span>
-        </div>
+      <div className="shell co">
+        <div className="co__main">
+          <NoticeBand
+            tone="go"
+            icon={<Lock />}
+            className="lock"
+            title={`Ordering from Merci Market ${location.name} · ${location.addr}`}
+          >
+            This order goes to {location.name}&rsquo;s kitchen and is paid to{' '}
+            {location.name}. Items from another store need their own order.
+          </NoticeBand>
 
-        {error && (
-          <p className="note note--stop" role="alert">
-            <span>{error}</span>
-          </p>
-        )}
+          {error && (
+            <p className="note note--stop" role="alert">
+              <span>{error}</span>
+            </p>
+          )}
 
-        <div className="steps3">
-          {STEPS.map((s) => {
-            const open = step === s.n;
-            const complete = done[s.n];
-            const errs = touched[s.n] ? stepErrors[s.n] : {};
+          <StepAccordion>
+            {STEPS.map((s) => {
+              const open = step === s.n;
+              const errs = errsFor(s.n);
 
-            return (
-              <section key={s.n} className={`step3${open ? ' step3--open' : ''}`}>
-                <h2 className="step3__h">
-                  <button
-                    type="button"
-                    className="st-head"
-                    aria-expanded={open}
-                    onClick={() => setStep(open ? 0 : s.n)}
-                  >
-                    <span className="st-n" aria-hidden="true">
-                      {complete ? '✓' : s.n}
-                    </span>
-                    <span className="st-t">
-                      <strong>{s.title}</strong>
-                      <span className="st-sum">{summaries[s.n] || s.fallback}</span>
-                    </span>
-                    <span className="st-edit">{complete && !open ? 'Edit' : ''}</span>
-                  </button>
-                </h2>
-
-                {open && (
-                  <div className="st-body">
-                    {s.n === 1 && (
-                      <>
-                        <div className="grid grid--2">
-                          <Field
-                            label={order.fulfillment === 'delivery' ? 'Delivery date' : 'Pickup date'}
-                            id="date"
-                            type="date"
-                            min={tomorrowISO()}
-                            value={order.date}
-                            onChange={(v) => dispatch({ type: 'setField', field: 'date', value: v })}
-                            hint="Earliest available is tomorrow."
-                            error={errs.date}
-                          />
-                          <p className="field">
-                            <label className="field__label" htmlFor="time">
-                              {order.fulfillment === 'delivery' ? 'Delivery window' : 'Pickup window'}
-                            </label>
-                            <select
-                              id="time"
-                              className="select"
-                              value={order.time}
-                              onChange={(e) =>
-                                dispatch({ type: 'setField', field: 'time', value: e.target.value })
-                              }
-                              aria-invalid={errs.time ? 'true' : undefined}
-                            >
-                              <option value="">Choose a window</option>
-                              {DELIVERY_WINDOWS.map((w) => (
-                                <option key={w}>{w}</option>
-                              ))}
-                            </select>
-                            {errs.time ? (
-                              <span className="field__error">{errs.time}</span>
-                            ) : (
-                              <span className="field__hint">
-                                Windows shown are placeholders pending your real cut-off
-                                rules.
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                        <StepFoot onNext={() => advance(1)} busy={busy} />
-                      </>
-                    )}
-
-                    {s.n === 2 && (
-                      <>
-                        <div className="segment">
-                          {[
-                            {
-                              id: 'delivery',
-                              label: 'Deliver to me',
-                              sub: 'Fee and radius to be confirmed',
-                            },
-                            {
-                              id: 'pickup',
-                              label: 'I’ll pick it up',
-                              sub: `${location.addr}, no fee`,
-                            },
-                          ].map((o) => (
-                            <label
-                              key={o.id}
-                              className={`segment__o${order.fulfillment === o.id ? ' segment__o--on' : ''}`}
-                            >
-                              <input
-                                type="radio"
-                                name="fulfillment"
-                                checked={order.fulfillment === o.id}
-                                onChange={() =>
-                                  dispatch({ type: 'setField', field: 'fulfillment', value: o.id })
-                                }
-                              />
-                              <span className="segment__label">{o.label}</span>
-                              <span className="segment__sub">{o.sub}</span>
-                            </label>
+              return (
+                <Step
+                  key={s.n}
+                  n={s.n}
+                  title={s.title}
+                  summary={summaries[s.n]}
+                  open={open}
+                  done={Boolean(done[s.n])}
+                  reachable={reachable(s.n)}
+                  onToggle={() => setStep(open ? 0 : s.n)}
+                >
+                  {s.n === 1 && (
+                    <>
+                      <div className="fields fields--two">
+                        <Field
+                          label={delivery ? 'Delivery date' : 'Pickup date'}
+                          id="date"
+                          type="date"
+                          min={tomorrowISO()}
+                          value={order.date}
+                          onChange={(v) => dispatch({ type: 'setField', field: 'date', value: v })}
+                          hint="Earliest available is tomorrow."
+                          error={errs.date}
+                        />
+                        <SelectField
+                          label={delivery ? 'Delivery window' : 'Pickup window'}
+                          id="time"
+                          value={order.time}
+                          onChange={(v) => dispatch({ type: 'setField', field: 'time', value: v })}
+                          hint="Windows shown are placeholders pending your real cut-off rules."
+                          error={errs.time}
+                        >
+                          <option value="">Choose a window</option>
+                          {DELIVERY_WINDOWS.map((w) => (
+                            <option key={w}>{w}</option>
                           ))}
-                        </div>
+                        </SelectField>
+                      </div>
+                      <StepFoot onNext={() => advance(1)} busy={busy} />
+                    </>
+                  )}
 
-                        {order.fulfillment === 'delivery' && (
+                  {s.n === 2 && (
+                    <>
+                      <div className="fulfil">
+                        {[
+                          {
+                            id: 'delivery',
+                            label: 'Deliver to me',
+                            sub: 'Fee and radius to be confirmed',
+                          },
+                          {
+                            id: 'pickup',
+                            label: 'I’ll pick it up',
+                            sub: `${location.addr}, no fee`,
+                          },
+                        ].map((o) => (
+                          <label
+                            key={o.id}
+                            className={`fulfil__o${order.fulfillment === o.id ? ' fulfil__o--on' : ''}`}
+                          >
+                            {/* A real radio, clipped rather than replaced: the
+                                artifact draws plain buttons, but a mutually
+                                exclusive choice is a radio group to anything
+                                that is not a pair of eyes. Arrow keys work. */}
+                            <input
+                              type="radio"
+                              name="fulfillment"
+                              className="visually-hidden"
+                              checked={order.fulfillment === o.id}
+                              onChange={() =>
+                                dispatch({ type: 'setField', field: 'fulfillment', value: o.id })
+                              }
+                            />
+                            <b>{o.label}</b>
+                            <span>{o.sub}</span>
+                          </label>
+                        ))}
+                      </div>
+
+                      {delivery && (
+                        <div className="fields">
+                          <Field
+                            label="Delivery address"
+                            id="addr1"
+                            value={order.address.line1}
+                            onChange={(v) => dispatch({ type: 'setAddress', patch: { line1: v } })}
+                            error={errs.line1}
+                            placeholder="Street address, floor or suite"
+                            autoComplete="street-address"
+                          />
+                          <Field
+                            label="Notes for the driver"
+                            id="deliv"
+                            value={order.notes}
+                            onChange={(v) => dispatch({ type: 'setField', field: 'notes', value: v })}
+                            placeholder="e.g. reception on 12, ask for Dana"
+                          />
+                        </div>
+                      )}
+
+                      <StepFoot onNext={() => advance(2)} busy={busy} />
+                    </>
+                  )}
+
+                  {s.n === 3 && (
+                    <>
+                      <div className="fields fields--two">
+                        <Field
+                          label="Full name"
+                          id="name"
+                          value={order.contact.name}
+                          onChange={(v) => dispatch({ type: 'setContact', patch: { name: v } })}
+                          error={errs.name}
+                          autoComplete="name"
+                        />
+                        <Field
+                          label="Company"
+                          id="co"
+                          optional
+                          value={order.contact.company}
+                          onChange={(v) => dispatch({ type: 'setContact', patch: { company: v } })}
+                          autoComplete="organization"
+                        />
+                        <Field
+                          label="Email"
+                          id="email"
+                          type="email"
+                          value={order.contact.email}
+                          onChange={(v) => dispatch({ type: 'setContact', patch: { email: v } })}
+                          hint="Confirmation and receipt go here."
+                          error={errs.email}
+                          autoComplete="email"
+                        />
+                        <Field
+                          label="Mobile"
+                          id="phone"
+                          type="tel"
+                          value={order.contact.phone}
+                          onChange={(v) => dispatch({ type: 'setContact', patch: { phone: v } })}
+                          hint="The driver calls this on the day."
+                          error={errs.phone}
+                          autoComplete="tel"
+                        />
+                      </div>
+                      <StepFoot onNext={() => advance(3)} busy={busy} />
+                    </>
+                  )}
+
+                  {s.n === 4 && (
+                    <>
+                      <button
+                        type="button"
+                        className={`saved${useSaved ? ' saved--on' : ''}`}
+                        onClick={() => setUseSaved((v) => !v)}
+                        aria-pressed={useSaved}
+                      >
+                        <span className="saved__mk" aria-hidden="true" />
+                        <span className="saved__t">
+                          <b>Visa ending 4242</b>
+                          <span>Saved from your last {location.name} order</span>
+                        </span>
+                      </button>
+
+                      {/* The artifact's payment slot. There it is a dashed box
+                          saying a Stripe element would mount here; here one
+                          does, in the same place — and while the saved card is
+                          the choice, the same box says why no card fields are
+                          being asked for. Card numbers never touch this
+                          origin either way: PaymentElement is Stripe's iframe,
+                          keyed to this store's own Stripe account. */}
+                      <div className={`pm${useSaved ? '' : ' pm--live'}`}>
+                        {useSaved ? (
                           <>
-                            <Field
-                              label="Delivery address"
-                              id="addr1"
-                              value={order.address.line1}
-                              onChange={(v) => dispatch({ type: 'setAddress', patch: { line1: v } })}
-                              error={errs.line1}
-                              autoComplete="address-line1"
-                            />
-                            <Field
-                              label="Notes for the driver"
-                              id="deliv"
-                              optional
-                              value={order.notes}
-                              onChange={(v) => dispatch({ type: 'setField', field: 'notes', value: v })}
-                              placeholder="e.g. reception on 12, ask for Dana"
-                            />
+                            <b>No card details needed</b>
+                            <span>
+                              We will use the card saved from your last {location.name}{' '}
+                              order. Untick it to pay with a different card and Stripe&rsquo;s
+                              own fields open here.
+                            </span>
                           </>
-                        )}
-
-                        <StepFoot onNext={() => advance(2)} busy={busy} />
-                      </>
-                    )}
-
-                    {s.n === 3 && (
-                      <>
-                        <div className="grid grid--2">
-                          <Field
-                            label="Full name"
-                            id="name"
-                            value={order.contact.name}
-                            onChange={(v) => dispatch({ type: 'setContact', patch: { name: v } })}
-                            error={errs.name}
-                            autoComplete="name"
-                          />
-                          <Field
-                            label="Company"
-                            id="co"
-                            optional
-                            value={order.contact.company}
-                            onChange={(v) => dispatch({ type: 'setContact', patch: { company: v } })}
-                            autoComplete="organization"
-                          />
-                          <Field
-                            label="Email"
-                            id="email"
-                            type="email"
-                            value={order.contact.email}
-                            onChange={(v) => dispatch({ type: 'setContact', patch: { email: v } })}
-                            hint="Confirmation and receipt go here."
-                            error={errs.email}
-                            autoComplete="email"
-                          />
-                          <Field
-                            label="Mobile"
-                            id="phone"
-                            type="tel"
-                            value={order.contact.phone}
-                            onChange={(v) => dispatch({ type: 'setContact', patch: { phone: v } })}
-                            hint="The driver calls this on the day."
-                            error={errs.phone}
-                            autoComplete="tel"
-                          />
-                        </div>
-                        <StepFoot onNext={() => advance(3)} busy={busy} />
-                      </>
-                    )}
-
-                    {s.n === 4 && (
-                      <>
-                        <button
-                          type="button"
-                          className={`saved${useSaved ? ' saved--on' : ''}`}
-                          onClick={() => setUseSaved(true)}
-                          aria-pressed={useSaved}
-                        >
-                          <span className="saved__mk" aria-hidden="true" />
-                          <span>
-                            <strong>Visa ending 4242</strong>
-                            <span>Saved from your last {location.name} order</span>
-                          </span>
-                        </button>
-
-                        <button
-                          type="button"
-                          className={`saved${!useSaved ? ' saved--on' : ''}`}
-                          onClick={() => setUseSaved(false)}
-                          aria-pressed={!useSaved}
-                        >
-                          <span className="saved__mk" aria-hidden="true" />
-                          <span>
-                            <strong>Use a different card</strong>
-                            <span>Entered securely with Stripe</span>
-                          </span>
-                        </button>
-
-                        {!useSaved && (
-                          <div className="pm">
+                        ) : (
+                          <>
                             <StripePayment
                               locationId={location.id}
                               clientSecret={clientSecret}
@@ -404,99 +411,89 @@ export default function Checkout() {
                               }}
                               onError={setError}
                             />
-                            <p className="meta">
+                            <p className="meta pm__note">
                               Card details go straight to Stripe from your browser, keyed to{' '}
                               {location.name}&rsquo;s own Stripe account. They never reach
                               Merci Market&rsquo;s servers.
                             </p>
-                          </div>
+                          </>
                         )}
+                      </div>
 
-                        <HoldBand lead={lead} total={total} />
+                      <HoldBand lead={lead} total={total} />
 
-                        <div className="stepfoot">
-                          <button
-                            type="button"
-                            className="btn btn--primary btn--lg"
-                            onClick={place}
-                            disabled={busy}
-                          >
-                            {busy ? 'Placing the order…' : `Place order · ${money(total)}`}
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </section>
-            );
-          })}
+                      <div className="stepfoot">
+                        <button
+                          type="button"
+                          className="btn btn--primary"
+                          onClick={place}
+                          disabled={busy}
+                        >
+                          {busy ? 'Placing the order…' : `Place order · hold ${money(total)}`}
+                        </button>
+                        <span className="stepfoot__note">
+                          You can still change this order until the kitchen starts it.
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </Step>
+              );
+            })}
+          </StepAccordion>
         </div>
+
+        {/* ---- Your order ---------------------------------------------------- */}
+        <aside className="co__side" aria-label="Your order">
+          <OrderSummary
+            title="Your order"
+            meta={`${location.name} · ${plural(order.guests, 'guest')}`}
+            items={order.lines.map((l) => ({
+              key: l.uid,
+              name: l.name,
+              sub:
+                l.unit === 'box'
+                  ? `${plural(l.qty, 'box', 'boxes')} · serves ${l.serves * l.qty}`
+                  : `${plural(order.guests, 'guest')}${
+                      Object.values(l.selections || {}).flat().length
+                        ? ` · ${Object.values(l.selections).flat().join(', ')}`
+                        : ''
+                    }`,
+              amount: lineTotal(l, order.guests),
+            }))}
+            rows={[
+              { key: 'sub', label: 'Subtotal', value: money(subtotal) },
+              ...(delivery
+                ? [
+                    {
+                      key: 'fee',
+                      label: 'Delivery fee',
+                      value: 'To be confirmed',
+                      tone: 'pending',
+                      money: false,
+                    },
+                  ]
+                : []),
+              {
+                key: 'tax',
+                label: `Sales tax (${(TAX_RATE * 100).toFixed(3)}%)`,
+                value: money(tax),
+              },
+              { key: 'total', label: 'Estimated total', value: money(total), tone: 'strong' },
+            ]}
+            note={
+              delivery
+                ? 'Tax is calculated by Toast at each location, not hard-coded here. The delivery fee is the one number still missing from your side.'
+                : 'Tax is calculated by Toast at each location, not hard-coded here.'
+            }
+          >
+            <Link to={`/menu/${location.id}`} className="btn btn--quiet sum-card__back">
+              Edit order
+            </Link>
+          </OrderSummary>
+        </aside>
       </div>
-
-      {/* ---- Your order ------------------------------------------------------ */}
-      <aside className="co__side" aria-labelledby="co-sum">
-        <div className="card card--pad">
-          <h2 id="co-sum" className="summary__h">
-            Your order
-          </h2>
-          <p className="summary__meta">
-            {location.name} · {plural(order.guests, 'guest')}
-          </p>
-
-          <ul className="summary__list">
-            {order.lines.map((l) => (
-              <li key={l.uid} className="summary__line summary__line--flat">
-                <span className="summary__name">
-                  {l.name}
-                  <span className="summary__qty">
-                    {l.unit === 'box'
-                      ? `${l.qty} ${l.qty === 1 ? 'box' : 'boxes'} · serves ${l.serves * l.qty}`
-                      : `${order.guests} guests${
-                          Object.values(l.selections || {}).flat().length
-                            ? ` · ${Object.values(l.selections).flat().join(', ')}`
-                            : ''
-                        }`}
-                  </span>
-                </span>
-                <span className="summary__amt money">{money(lineTotal(l, order.guests))}</span>
-              </li>
-            ))}
-          </ul>
-
-          <dl className="tot">
-            <div className="tot__row">
-              <dt>Subtotal</dt>
-              <dd className="money">{money(subtotal)}</dd>
-            </div>
-            {order.fulfillment === 'delivery' && (
-              <div className="tot__row tot__row--pending">
-                <dt>Delivery fee</dt>
-                <dd>To be confirmed</dd>
-              </div>
-            )}
-            <div className="tot__row">
-              <dt>Sales tax ({(TAX_RATE * 100).toFixed(3)}%)</dt>
-              <dd className="money">{money(tax)}</dd>
-            </div>
-            <div className="tot__row tot__row--strong">
-              <dt>Estimated total</dt>
-              <dd className="money">{money(total)}</dd>
-            </div>
-          </dl>
-
-          <p className="meta">
-            Tax is calculated by Toast at each location, not hard-coded here.
-            {order.fulfillment === 'delivery' &&
-              ' The delivery fee is the one number still missing from your side.'}
-          </p>
-
-          <Link to={`/menu/${location.id}`} className="btn btn--quiet">
-            Edit order
-          </Link>
-        </div>
-      </aside>
-    </div>
+    </>
   );
 }
 
@@ -514,13 +511,9 @@ function HoldBand({ lead, total }) {
   }
 
   return (
-    <div className="hold">
-      <span className="hold__i" aria-hidden="true" />
-      <span>
-        <strong>{title}</strong>
-        <span>{body}</span>
-      </span>
-    </div>
+    <NoticeBand tone="warn" icon={<ClockRing />} className="hold" title={title}>
+      {body}
+    </NoticeBand>
   );
 }
 
@@ -531,36 +524,6 @@ function StepFoot({ onNext, busy }) {
         {busy ? 'Working…' : 'Continue'}
       </button>
     </div>
-  );
-}
-
-function Field({ label, id, value, onChange, error, optional, hint, type = 'text', ...rest }) {
-  return (
-    <p className="field">
-      <label className="field__label" htmlFor={id}>
-        {label} {optional && <span className="field__opt">optional</span>}
-      </label>
-      <input
-        id={id}
-        className="input"
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-invalid={error ? 'true' : undefined}
-        aria-describedby={error ? `${id}-err` : hint ? `${id}-hint` : undefined}
-        {...rest}
-      />
-      {hint && !error && (
-        <span className="field__hint" id={`${id}-hint`}>
-          {hint}
-        </span>
-      )}
-      {error && (
-        <span className="field__error" id={`${id}-err`}>
-          {error}
-        </span>
-      )}
-    </p>
   );
 }
 
@@ -585,20 +548,24 @@ const pick = (obj, keys) =>
   Object.fromEntries(Object.entries(obj).filter(([k]) => keys.includes(k)));
 
 function tomorrowISO() {
-  const d = new Date();
+  const d = new Date(`${todayISO()}T12:00:00`);
   d.setDate(d.getDate() + 1);
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(d);
+  return new Intl.DateTimeFormat('en-CA').format(d);
 }
 
+/* The artifact's own wording, kept verbatim: an error tells you what to do
+   next, not what you did wrong. */
 function validate(order) {
   const e = {};
-  if (!order.date) e.date = 'Choose a date.';
-  if (!order.time) e.time = 'Choose a window.';
+  if (!order.date) e.date = 'Pick a delivery date.';
+  else if (daysUntil(order.date) < 1) e.date = 'The earliest we can deliver is tomorrow.';
+  if (!order.time) e.time = 'Pick a delivery window.';
   if (order.fulfillment === 'delivery' && !order.address.line1.trim())
     e.line1 = 'We need an address to deliver to.';
-  if (!order.contact.name.trim()) e.name = 'Who should we ask for?';
+  if (!order.contact.name.trim()) e.name = 'Please add a name.';
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(order.contact.email.trim()))
-    e.email = 'Check that email address.';
-  if (order.contact.phone.replace(/\D/g, '').length < 10) e.phone = 'Ten digits, please.';
+    e.email = 'That email does not look right.';
+  if (order.contact.phone.replace(/\D/g, '').length < 10)
+    e.phone = 'Please add a 10-digit mobile number.';
   return e;
 }

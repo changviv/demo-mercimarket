@@ -27,3 +27,39 @@ export const Plus = () => (
     <path d="M7.5 1v13M1 7.5h13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
+
+/* The next three are transcribed from the checkout artifact (42bdcee2), same
+   viewBox and stroke weights: the masthead's Stripe reassurance, the store
+   lock band, and the clock on the card-hold explanation. */
+
+export const Shield = () => (
+  <svg width="15" height="17" viewBox="0 0 15 17" fill="none" aria-hidden="true">
+    <path
+      d="M7.5 1L14 3.6v4.6c0 4-2.8 6.7-6.5 7.8C3.8 14.9 1 12.2 1 8.2V3.6L7.5 1z"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M5 8.3l1.9 1.9L10.4 6.7"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const Lock = () => (
+  <svg width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
+    <path d="M4.5 7.5V5a4 4 0 118 0v2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <rect x="2.8" y="7.5" width="11.4" height="8" rx="2" stroke="currentColor" strokeWidth="1.5" />
+  </svg>
+);
+
+export const ClockRing = () => (
+  <svg width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
+    <circle cx="8.5" cy="8.5" r="7.2" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M8.5 4.6v4.4l2.8 1.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);

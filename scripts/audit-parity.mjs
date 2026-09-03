@@ -276,7 +276,7 @@ async function run() {
       ordering: document.querySelectorAll(".mast--order").length,
       storeInMast:
         (document.querySelector(".mast__store-name") || {}).textContent || "",
-      changeStore: document.querySelectorAll(".mast__store-change").length,
+      changeStore: document.querySelectorAll(".storemenu__trigger").length,
       // the store name must appear ONCE, not once per bar
       nameCount: [...document.querySelectorAll(".mast, .controls")]
         .map((el) => (el.textContent.match(/Bryant Park/g) || []).length)
@@ -298,7 +298,7 @@ async function run() {
       /Bryant Park · 1017 6th Ave/.test(chrome.storeInMast) &&
       chrome.changeStore === 1
     ) {
-      P("3 · masthead carries the store and one Change store link");
+      P("3 · masthead carries the store and one Change store menu");
     } else F(`3 · masthead store wrong — "${chrome.storeInMast}"`);
     if (chrome.nameCount === 1)
       P("3 · the store is named once in the chrome, not twice");
@@ -577,7 +577,9 @@ async function run() {
     await p.waitForURL("**/checkout");
     await p.waitForTimeout(300);
 
-    const co = norm(await p.locator(".co__main").innerText());
+    /* The whole view: the artifact puts the page title above the two columns,
+       so it is not inside .co__main. */
+    const co = norm(await p.locator("main").innerText());
     for (const need of [
       "checkout",
       "when do you need it?",
@@ -602,21 +604,45 @@ async function run() {
       P("5 · delivery window select offers the six placeholder windows");
     else F(`5 · expected 7 window options (incl. placeholder), found ${opts}`);
 
-    // The hold copy must change with the date. This is the honest bit.
-    const holdFor = async (days) => {
+    /* The hold copy must change with the date. This is the honest bit.
+
+       Steps open in order — Payment is unreachable until the three in front of
+       it are answered, per artifact 42bdcee2 — so the whole form is filled in
+       once here, the way a person fills it, and only the date moves after
+       that. Reaching step four by clicking its head on a blank form used to
+       work and no longer does; that gate is asserted in audit-artifact. */
+    const answerDate = async (days) => {
       const d = new Date();
       d.setDate(d.getDate() + days);
       await p.fill("#date", d.toISOString().slice(0, 10));
       await p.waitForTimeout(150);
       await p.selectOption("#time", { index: 1 });
       await p.locator(".step3--open .stepfoot button").click();
-      await p.waitForTimeout(200);
-      await p.locator(".st-head").nth(3).click();
       await p.waitForTimeout(250);
-      const txt = norm(await p.locator(".hold").innerText());
-      await p.locator(".st-head").nth(0).click();
-      await p.waitForTimeout(200);
-      return txt;
+    };
+
+    await answerDate(3);
+    if (await p.locator("#addr1").count())
+      await p.fill("#addr1", "11 W 42nd St, 5th floor");
+    await p.locator(".step3--open .stepfoot button").click();
+    await p.waitForTimeout(250);
+    await p.fill("#name", "Dana Reed");
+    await p.fill("#email", "dana@example.com");
+    await p.fill("#phone", "2125551234");
+    await p.locator(".step3--open .stepfoot button").click();
+    await p.waitForSelector(".saved", { timeout: 20000 });
+    await p.waitForTimeout(300);
+    if ((await p.locator(".st-head[aria-disabled='true']").count()) === 0)
+      P("5 · every step is reachable once the one in front of it is answered");
+    else F("5 · a step stayed locked after the whole form was answered");
+
+    const holdFor = async (days) => {
+      await p.locator(".st-edit").first().click();
+      await p.waitForTimeout(250);
+      await answerDate(days);
+      await p.locator(".st-head").nth(3).click();
+      await p.waitForTimeout(300);
+      return norm(await p.locator(".hold").innerText());
     };
 
     const near = await holdFor(3);

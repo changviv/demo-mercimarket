@@ -5,6 +5,7 @@ import { useOrder } from '../state/OrderContext.jsx';
 import { getLocation } from '../data/locations.js';
 import NavAnchor from './NavAnchor.jsx';
 import StoreMenu from './StoreMenu.jsx';
+import { Shield } from './Icons.jsx';
 import logo from '/img/logo-tomato.webp';
 
 /* Masthead, in two modes.
@@ -47,6 +48,7 @@ import logo from '/img/logo-tomato.webp';
    still. */
 
 const ORDERING = /^\/(menu|checkout|orders)\b/;
+const PAYING = /^\/checkout\b/;
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -58,6 +60,7 @@ export default function Header() {
 
   const location = order.locationId ? getLocation(order.locationId) : null;
   const ordering = ORDERING.test(pathname);
+  const paying = PAYING.test(pathname);
 
   /* The URL owns the store — useSyncLocation dispatches setLocation when
      :locationId changes, and setLocation is what clears the basket. So choosing
@@ -141,6 +144,18 @@ export default function Header() {
         )}
 
         <div className="mast__end">
+          {/* The checkout artifact (42bdcee2) puts one reassurance in the
+              masthead and nothing else: whose payment rails these are. It is
+              the only page where that question is being asked, so it is the
+              only page that answers it. Below 900px the masthead is a wordmark
+              and a burger with no room for a sentence, and the same claim is
+              made in full inside the payment step. */}
+          {paying && (
+            <span className="mast__secure">
+              <Shield />
+              Payments secured by Stripe
+            </span>
+          )}
           {!ordering && (
             <>
               <NavAnchor to="/" hash="pick" className="btn btn--ghost mast__cta mast__cta--out">

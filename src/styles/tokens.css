@@ -65,6 +65,16 @@
 
   --fs-display: clamp(2.25rem, 1.35rem + 3.4vw, 4rem);
   --fs-h1: clamp(1.85rem, 1.3rem + 2.1vw, 2.9rem);
+  --fs-page: clamp(1.9rem, 4.4vw, 2.6rem);
+                            /* the title on an ORDERING screen. The checkout
+                               (42bdcee2) and order-management (8c40fafa)
+                               artifacts specify the same smaller display size
+                               here, deliberately quieter than a marketing h1:
+                               on a screen someone is trying to finish, the
+                               heading names the task and then gets out of the
+                               way. Its own step rather than --fs-h1 because
+                               those two screens agree with each other and
+                               disagree with the front of the site. */
   --fs-h2: clamp(1.4rem, 1.15rem + 1.05vw, 1.95rem);
   --fs-h3: clamp(1.12rem, 1.03rem + 0.4vw, 1.35rem);
   --fs-body: 1rem;          /* 16px — never smaller for running copy */
@@ -103,7 +113,9 @@
   --r-2xs: 6px;             /* the configurator's checkbox mark */
   --r-xs: 9px;              /* the menu artifact's rail link and inline flag */
   --r-sm: 10px;
-  --r-tab: 12px;            /* the honey "Est. 1979" tab */
+  --r-tab: 12px;            /* the honey "Est. 1979" tab, and the checkout
+                               artifact's control corner — mode tiles, the
+                               saved-card row, the payment slot */
   --r: 16px;
   --r-dialog: 20px;         /* the item sheet. Its own step rather than --r-lg
                                because a dialog corner and a hero-image corner

@@ -451,47 +451,52 @@ hr {
 
 /* ---- Form controls ------------------------------------------------------- */
 
+/* Metrics are the checkout artifact's (42bdcee2), which is the only artifact
+   that draws a form: a 13px bold label, a 6px gap, a 48px sunken control with a
+   1.5px hairline, and one line of hint OR one line of error underneath.
+
+   `max-width: none` is deliberate. A field is a stack, not a paragraph, and the
+   68ch cap above has twice leaked into a row and squashed it. */
 .field {
-  display: block;
-  margin-bottom: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  max-width: none;
 }
 
 .field__label {
-  display: block;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   font-weight: 700;
-  margin-bottom: var(--s-2);
+  letter-spacing: 0.02em;
   color: var(--ink);
 }
 
 .field__hint {
-  display: block;
   font-size: var(--fs-xs);
   color: var(--ink-3);
-  margin-top: var(--s-2);
+  line-height: 1.4;
 }
 
 .field__error {
-  display: block;
   font-size: var(--fs-xs);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--tomato-ink);
-  margin-top: var(--s-2);
 }
 
 .input,
 .select,
 .textarea {
   width: 100%;
-  min-height: var(--tap);
-  padding: var(--s-3) var(--s-4);
-  border: 1px solid var(--line-strong);
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line-strong);
   border-radius: var(--r-sm);
-  background: var(--surface);
+  background: var(--sunken);
   color: var(--ink);
   font-family: var(--text);
-  font-size: var(--fs-body);
-  line-height: 1.4;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-body);
 }
 
 .textarea {
@@ -508,8 +513,10 @@ hr {
 }
 
 .input[aria-invalid="true"],
-.select[aria-invalid="true"] {
-  border-color: var(--tomato-ink);
+.select[aria-invalid="true"],
+.field--bad .input,
+.field--bad .select {
+  border-color: var(--tomato);
 }
 
 .input::placeholder,

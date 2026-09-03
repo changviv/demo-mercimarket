@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "dev:api": "node --watch server/index.js",
+    "dev:all": "node --watch server/index.js & vite",
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server/index.js",
@@ -16,8 +17,9 @@
     "audit:parity": "node scripts/audit-parity.mjs",
     "audit:responsive": "node scripts/audit-responsive.mjs",
     "audit:secrets": "node scripts/audit-secrets.mjs",
-    "audit": "npm run audit:tokens && npm run audit:secrets && npm run audit:links && npm run audit:parity && npm run audit:artifact && npm run audit:responsive",
-    "audit:artifact": "node scripts/audit-artifact.mjs"
+    "audit": "npm run audit:tokens && npm run audit:secrets && npm run audit:api && npm run audit:links && npm run audit:parity && npm run audit:artifact && npm run audit:responsive",
+    "audit:artifact": "node scripts/audit-artifact.mjs",
+    "audit:api": "node scripts/audit-api-errors.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^3.1.1",
